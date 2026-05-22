@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js'
 import { InvalidBetStateError, InvalidBetAmountError } from './bet.errors'
 
 export type BetStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CASHED_OUT' | 'LOST'
@@ -67,7 +68,12 @@ export class Bet {
         }
         this.status = 'CASHED_OUT'
         this.cashoutMultiplier = multiplier
-        this.payoutInCents = BigInt(Math.floor(Number(this.amountInCents) * multiplier))
+        this.payoutInCents = BigInt(
+            new Decimal(this.amountInCents.toString())
+                .mul(multiplier)
+                .floor()
+                .toFixed(0)
+        )
     }
 
     lose() {
