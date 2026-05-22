@@ -29,7 +29,6 @@ export class WalletEventsConsumer {
             deadLetterRoutingKey: 'wallet.credit.requested.dlq',
         }
     })
-
     async handleCreditRequested(payload: unknown) {
         // TODO: CreditWalletUseCase 
         console.log('wallet.credit.requested', payload)

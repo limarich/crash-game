@@ -3,10 +3,12 @@ import { WalletsController } from "./presentation/controllers/wallets.controller
 import { RabbitMQModule } from "@golevelup/nestjs-rabbitmq";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { WalletEventsConsumer } from "./infrastructure/messaging/wallet-events.consumer";
+import { PrismaModule } from "./infrastructure/persistence/prisma.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
     RabbitMQModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
