@@ -1,0 +1,8 @@
+import { Bet } from './bet.entity'
+
+export interface IBetRepository {
+    findByRoundId(roundId: string): Promise<Bet[]>
+    findByPlayerAndRound(playerId: string, roundId: string): Promise<Bet | null>
+    findByPlayer(playerId: string, page: number, limit: number): Promise<Bet[]>
+    save(bet: Bet): Promise<void>
+}
