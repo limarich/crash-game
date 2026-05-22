@@ -1,11 +1,19 @@
 import { InsufficientFundsError, InvalidBalanceError, InvalidCreditAmountError, InvalidDebitAmountError } from "./wallet.errors";
 
 export class Wallet {
-    id: string;
-    playerId: string;
+    readonly id: string;
+    readonly playerId: string;
     private balanceInCents: bigint;
+    readonly createdAt?: Date
+    readonly updatedAt?: Date
 
-    constructor(params: { id: string; playerId: string; balanceInCents: bigint }) {
+    constructor(params: {
+        id: string;
+        playerId: string;
+        balanceInCents: bigint;
+        createdAt?: Date;
+        updatedAt?: Date;
+    }) {
         if (params.balanceInCents < 0n) {
             throw new InvalidBalanceError()
         }
@@ -13,6 +21,8 @@ export class Wallet {
         this.id = params.id
         this.playerId = params.playerId
         this.balanceInCents = params.balanceInCents
+        this.createdAt = params.createdAt
+        this.updatedAt = params.updatedAt
     }
 
     get balance(): bigint {
