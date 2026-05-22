@@ -199,6 +199,37 @@ GET /games/rounds/:roundId/verify
 
 Retorna `serverSeed` apenas se `status === 'CRASHED'`. O jogador pode usar qualquer ferramenta HMAC-SHA256 online para verificar o resultado.
 
+### Hash Chain
+
+Cada `serverSeed` é derivado do anterior via SHA256, formando uma cadeia imutável. Se o servidor adulterar o seed de qualquer rodada, o hash publicado antes dela não vai bater e as rodadas seguintes também ficam inválidas, porque dependem do seed adulterado.
+
+**Derivação entre rodadas:**
+
+```
+seed[n+1]         = SHA256(seed[n])
+serverSeedHash[n] = SHA256(seed[n])   ← publicado antes da rodada N começar
+```
+
+**Como verificar a integridade entre duas rodadas consecutivas:**
+
+```
+1. Após o crash da rodada N, o servidor revela serverSeed[N]
+2. Calcule: SHA256(SHA256(serverSeed[N]))
+3. Compare com o serverSeedHash da rodada N+1 (publicado antes dela começar)
+4. Se bater → a sequência é íntegra e o seed não foi manipulado
+```
+
+```typescript
+import { createHash } from 'crypto'
+
+// Verifica que seed[N] é o pai do seed usado na rodada N+1
+function verifyChain(serverSeedN: string, serverSeedHashN1: string): boolean {
+  const seedN1 = createHash('sha256').update(serverSeedN).digest('hex')
+  const hashN1 = createHash('sha256').update(seedN1).digest('hex')
+  return hashN1 === serverSeedHashN1
+}
+```
+
 ---
 
 ## Decisões técnicas e trade-offs
