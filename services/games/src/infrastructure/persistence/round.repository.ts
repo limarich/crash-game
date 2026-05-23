@@ -1,17 +1,83 @@
 import { IRoundRepository } from "../../domain/round/round.interface"
 import { Round } from "../../domain/round/round.entity"
+import { PrismaService } from "./prisma.service"
+import { Round as PrismaRound } from "@/generated/prisma/client"
 
 export class RoundRepository implements IRoundRepository {
-    findCurrent(): Promise<Round | null> {
-        throw new Error("Method not implemented.")
+    constructor(private prismaService: PrismaService) { }
+
+    async findCurrent() {
+        const record = await this.prismaService.round.findFirst({
+            where: {
+                status: { in: ['BETTING', 'RUNNING'] },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+
+        if (!record) {
+            return null
+        }
+
+        return this.toDomain(record)
     }
-    findById(id: string): Promise<Round | null> {
-        throw new Error("Method not implemented.")
+    async findById(id: string) {
+        const record = await this.prismaService.round.findUnique({
+            where: { id }
+        })
+
+        if (!record) {
+            return null
+        }
+
+        return this.toDomain(record)
     }
-    findHistory(page: number, limit: number): Promise<Round[]> {
-        throw new Error("Method not implemented.")
+    async findHistory(page: number, limit: number) {
+        const records = await this.prismaService.round.findMany({
+            where: { status: 'CRASHED' },
+            orderBy: { createdAt: 'desc' },
+            skip: (page - 1) * limit,
+            take: limit,
+        })
+
+        return records.map(record => this.toDomain(record))
     }
-    save(round: Round): Promise<void> {
-        throw new Error("Method not implemented.")
+    async save(round: Round) {
+        await this.prismaService.round.upsert({
+            where: { id: round.id },
+            create: {
+                id: round.id,
+                nonce: round.nonce,
+                clientSeed: round.clientSeed,
+                serverSeed: round.getServerSeed(),
+                serverSeedHash: round.serverSeedHash,
+                crashPoint: round.getCrashPoint(),
+                status: round.getStatus(),
+                bettingEndsAt: round.bettingEndsAt,
+                startedAt: round.getStartedAt(),
+                crashedAt: round.getCrashedAt(),
+                createdAt: round.createdAt,
+            },
+            update: {
+                status: round.getStatus(),
+                startedAt: round.getStartedAt(),
+                crashedAt: round.getCrashedAt(),
+            },
+        })
+    }
+
+    private toDomain(record: PrismaRound) {
+        return new Round({
+            id: record.id,
+            nonce: record.nonce,
+            clientSeed: record.clientSeed,
+            serverSeed: record.serverSeed,
+            serverSeedHash: record.serverSeedHash,
+            crashPoint: record.crashPoint,
+            bettingEndsAt: record.bettingEndsAt,
+            createdAt: record.createdAt,
+            status: record.status,
+            startedAt: record.startedAt,
+            crashedAt: record.crashedAt
+        })
     }
 }

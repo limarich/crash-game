@@ -48,6 +48,11 @@ export class Bet {
     getCashoutMultiplier() { return this.cashoutMultiplier }
     getPayoutInCents() { return this.payoutInCents }
 
+    // for persistency only
+    getRawStatus() { return this.status }
+    getRawCashoutMultiplier() { return this.cashoutMultiplier }
+    getRawPayoutInCents() { return this.payoutInCents }
+
     confirm() {
         if (this.status !== 'PENDING') {
             throw new InvalidBetStateError(this.status, 'CONFIRMED')

@@ -1,0 +1,1 @@
+export const BET_REPOSITORY = 'BET_REPOSITORY'
