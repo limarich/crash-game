@@ -6,7 +6,10 @@
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "test": "bun test tests/unit",
-    "test:e2e": "bun test tests/e2e"
+    "test:e2e": "bun test tests/e2e",
+    "migrate:dev": "DATABASE_URL=postgresql://admin:admin@localhost:5432/games bunx prisma migrate dev",
+    "migrate:deploy": "bunx prisma migrate deploy",
+    "prisma:generate": "DATABASE_URL=postgresql://admin:admin@localhost:5432/games bunx prisma generate"
   },
   "dependencies": {
     "@golevelup/nestjs-rabbitmq": "^9.0.2",
@@ -14,7 +17,11 @@
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.17",
     "@nestjs/platform-express": "^11.1.17",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "decimal.js": "^10.6.0",
+    "pg": "^8.21.0",
+    "prisma": "^7.8.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
