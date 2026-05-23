@@ -19,3 +19,4 @@ bun.lockb
 *.log
 
 /generated/prisma
+/src/generated/prisma

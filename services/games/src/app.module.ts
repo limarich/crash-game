@@ -2,12 +2,14 @@ import { Module } from "@nestjs/common";
 import { GamesController } from "./presentation/controllers/games.controller";
 import { RabbitMQModule } from "@golevelup/nestjs-rabbitmq";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { PrismaModule } from "./infrastructure/persistence/prisma.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true
     }),
+    PrismaModule,
     RabbitMQModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
