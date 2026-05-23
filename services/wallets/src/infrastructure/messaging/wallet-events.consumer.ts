@@ -1,9 +1,17 @@
+import { CreditWalletUseCase } from "@/application/use-cases/credit-wallet.use-case";
+import { DebitWalletUseCase } from "@/application/use-cases/debit-wallet.use-case";
 import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
 import { Injectable } from "@nestjs/common";
+import { WalletEventsPublisher } from "./wallet-events.publisher";
+import type { CreditRequestedPayload, DebitRequestedPayload } from "./wallet-events.types";
 
 @Injectable()
 export class WalletEventsConsumer {
-
+    constructor(
+        private readonly debitWalletUseCase: DebitWalletUseCase,
+        private readonly creditWalletUseCase: CreditWalletUseCase,
+        private readonly publisher: WalletEventsPublisher,
+    ) { }
     @RabbitSubscribe({
         exchange: 'crash.events',
         routingKey: 'wallet.debit.requested',
@@ -14,9 +22,25 @@ export class WalletEventsConsumer {
             deadLetterRoutingKey: 'wallet.debit.requested.dlq',
         },
     })
-    async handleDebitRequested(payload: unknown) {
-        // TODO: DebitWalletUseCase 
-        console.log('wallet.debit.requested', payload)
+    async handleDebitRequested(payload: DebitRequestedPayload) {
+        const result = await this.debitWalletUseCase.execute({
+            amountInCents: payload.amountInCents,
+            playerId: payload.playerId
+        })
+
+        if (result.success) {
+            await this.publisher.publishDebitSucceeded({
+                betId: payload.betId,
+                playerId: payload.playerId,
+                newBalanceInCents: result.newBalanceInCents.toString()
+            })
+        } else {
+            await this.publisher.publishDebitFailed({
+                betId: payload.betId,
+                playerId: payload.playerId,
+                reason: result.reason
+            })
+        }
     }
 
     @RabbitSubscribe({
@@ -29,9 +53,25 @@ export class WalletEventsConsumer {
             deadLetterRoutingKey: 'wallet.credit.requested.dlq',
         }
     })
-    async handleCreditRequested(payload: unknown) {
-        // TODO: CreditWalletUseCase 
-        console.log('wallet.credit.requested', payload)
+    async handleCreditRequested(payload: CreditRequestedPayload) {
+        const result = await this.creditWalletUseCase.execute({
+            amountInCents: payload.amountInCents,
+            playerId: payload.playerId,
+        })
+
+        if (result.success) {
+            await this.publisher.publishCreditSucceeded({
+                betId: payload.betId,
+                playerId: payload.playerId,
+                newBalanceInCents: result.newBalanceInCents.toString()
+            })
+        } else {
+            await this.publisher.publishCreditFailed({
+                betId: payload.betId,
+                playerId: payload.playerId,
+                reason: result.reason
+            })
+        }
     }
 
 }
