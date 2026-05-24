@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 import { GamesController } from "./presentation/controllers/games.controller";
-import { RabbitMQModule } from "@golevelup/nestjs-rabbitmq";
-import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ConfigModule } from "@nestjs/config";
 import { PrismaModule } from "./infrastructure/persistence/prisma.module";
+import { MessagingModule } from "./infrastructure/messaging/messaging.module";
 
 @Module({
   imports: [
@@ -10,26 +10,7 @@ import { PrismaModule } from "./infrastructure/persistence/prisma.module";
       isGlobal: true
     }),
     PrismaModule,
-    RabbitMQModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (config: ConfigService) => ({
-        exchanges: [
-          {
-            name: 'crash.events',
-            type: 'topic',
-            options: { durable: true },
-          },
-          {
-            name: 'crash.events.dlx',
-            type: 'topic',
-            options: { durable: true },
-          },
-        ],
-        uri: config.get('RABBITMQ_URL') ?? 'amqp://guest:guest@localhost:5672',
-        connectionInitOptions: { wait: true },
-      }),
-    }),
+    MessagingModule
   ],
   controllers: [GamesController],
 })
