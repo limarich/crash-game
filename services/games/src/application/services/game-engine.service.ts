@@ -25,33 +25,49 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
     ) { }
 
     async onApplicationBootstrap() {
-        await this.recoverOrStart()
+        try {
+            console.log('[GameEngine] onApplicationBootstrap called')
+            await this.recoverOrStart()
+        } catch (error) {
+            console.error('[GameEngine] Failed to start round:', error)
+        }
     }
 
-    onApplicationShutdown(): void {
-        this.stopTick()
+    onApplicationShutdown() {
+        try {
+            console.log('[GameEngine] onApplicationShutdown called')
+            this.stopTick()
+        } catch (error) {
+            console.error('[GameEngine] Failed to onApplicationShutdown:', error)
+        }
     }
 
     private async recoverOrStart() {
 
-        const existing = await this.roundRepository.findCurrent()
+        try {
+            console.log('[GameEngine] recoverOrStart called')
+            const existing = await this.roundRepository.findCurrent()
+            console.log('[GameEngine] existing round:', existing?.id ?? 'none')
 
-        if (existing) {
-            this.currentRound = existing;
-            this.nonce = existing.nonce;
+            if (existing) {
+                this.currentRound = existing;
+                this.nonce = existing.nonce;
 
-            if (existing.getStatus() === "RUNNING") {
-                this.startTick()
-                return;
+                if (existing.getStatus() === "RUNNING") {
+                    this.startTick()
+                    return;
+                }
+
+                const elapsed = Date.now() - existing.bettingEndsAt.getTime()
+                const remaining = Math.max(0, BETTING_PHASE_MS - elapsed)
+
+                setTimeout(() => this.runRound(), remaining)
+                return
             }
-
-            const elapsed = Date.now() - existing.bettingEndsAt.getTime()
-            const remaining = Math.max(0, BETTING_PHASE_MS - elapsed)
-
-            setTimeout(() => this.runRound(), remaining)
-            return
+            await this.startBettingPhase()
+        } catch (error) {
+            console.error('[GameEngine] Failed to start round:', error)
         }
-        await this.startBettingPhase()
     }
 
     private async startBettingPhase() {
