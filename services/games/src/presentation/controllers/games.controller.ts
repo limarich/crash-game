@@ -22,6 +22,7 @@ import { BET_REPOSITORY } from '../../domain/bet/bet.token'
 import type { IRoundRepository } from '../../domain/round/round.interface'
 import type { IBetRepository } from '../../domain/bet/bet.interface'
 import { VerifyResponseDto } from '../dtos/verify-response.dto'
+import { PlaceBetDto } from '../dtos/place-bet.dto'
 
 @Controller('games')
 export class GamesController {
@@ -121,7 +122,7 @@ export class GamesController {
     @UseGuards(JwtAuthGuard)
     async placeBet(
         @Req() req: AuthenticatedRequest,
-        @Body() body: { amountInCents: string },
+        @Body() body: PlaceBetDto,
     ) {
         const bet = await this.placeBetUseCase.execute({
             playerId: req.user.sub,
