@@ -2,9 +2,23 @@ import { IBetRepository } from "@/domain/bet/bet.interface"
 import { Bet, BetStatus as DomainBetStatus } from "@/domain/bet/bet.entity"
 import { PrismaService } from "./prisma.service"
 import { Bet as PrismaBet } from "@/generated/prisma/client"
+import { Injectable } from "@nestjs/common"
 
+@Injectable()
 export class BetRepository implements IBetRepository {
     constructor(private readonly prismaService: PrismaService) { }
+
+    async findById(id: string) {
+        const record = await this.prismaService.bet.findUnique({
+            where: { id }
+        })
+
+        if (!record) {
+            return null
+        }
+
+        return this.toDomain(record)
+    }
 
     async findByRoundId(roundId: string) {
         const records = await this.prismaService.bet.findMany({

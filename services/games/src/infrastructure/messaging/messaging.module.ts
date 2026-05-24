@@ -3,9 +3,15 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { GameEventsPublisher } from "./game-events.publisher";
 import { GameEventsConsumer } from "./game-events.consumer";
+import { ConfirmBetUseCase } from "@/application/use-cases/confirm-bet.use-case";
+import { CancelBetUseCase } from "@/application/use-cases/cancel-bet.use-case";
+import { BET_REPOSITORY } from "@/domain/bet/bet.token";
+import { BetRepository } from "@/infrastructure/persistence/bet.repository";
+import { PrismaModule } from "@/infrastructure/persistence/prisma.module";
 
 @Module({
     imports: [
+        PrismaModule,
         RabbitMQModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -27,6 +33,13 @@ import { GameEventsConsumer } from "./game-events.consumer";
             }),
         }),
     ],
-    providers: [GameEventsPublisher, GameEventsConsumer],
+    providers: [
+        { provide: BET_REPOSITORY, useClass: BetRepository },
+        GameEventsPublisher,
+        GameEventsConsumer,
+        ConfirmBetUseCase,
+        CancelBetUseCase,
+    ],
+    exports: [GameEventsPublisher],
 })
 export class MessagingModule { }

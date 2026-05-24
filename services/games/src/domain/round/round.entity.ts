@@ -60,6 +60,14 @@ export class Round {
         return this.crashPoint
     }
 
+    getRawCrashPoint() {
+        return this.crashPoint
+    }
+
+    getRawServerSeed() {
+        return this.serverSeed
+    }
+
     getServerSeed() {
         if (this.status !== 'CRASHED') {
             throw new SeedNotAvailableError()

@@ -3,6 +3,7 @@ import { GamesController } from "./presentation/controllers/games.controller";
 import { ConfigModule } from "@nestjs/config";
 import { PrismaModule } from "./infrastructure/persistence/prisma.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
+import { GameModule } from "./game.module";
 
 @Module({
   imports: [
@@ -10,7 +11,8 @@ import { MessagingModule } from "./infrastructure/messaging/messaging.module";
       isGlobal: true
     }),
     PrismaModule,
-    MessagingModule
+    MessagingModule,
+    GameModule
   ],
   controllers: [GamesController],
 })

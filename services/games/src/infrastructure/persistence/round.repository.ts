@@ -1,8 +1,10 @@
-import { IRoundRepository } from "../../domain/round/round.interface"
+import type { IRoundRepository } from "../../domain/round/round.interface"
 import { Round } from "../../domain/round/round.entity"
 import { PrismaService } from "./prisma.service"
 import { Round as PrismaRound } from "@/generated/prisma/client"
+import { Injectable } from "@nestjs/common"
 
+@Injectable()
 export class RoundRepository implements IRoundRepository {
     constructor(private prismaService: PrismaService) { }
 
@@ -48,9 +50,9 @@ export class RoundRepository implements IRoundRepository {
                 id: round.id,
                 nonce: round.nonce,
                 clientSeed: round.clientSeed,
-                serverSeed: round.getServerSeed(),
+                serverSeed: round.getRawServerSeed(),
                 serverSeedHash: round.serverSeedHash,
-                crashPoint: round.getCrashPoint(),
+                crashPoint: round.getRawCrashPoint(),
                 status: round.getStatus(),
                 bettingEndsAt: round.bettingEndsAt,
                 startedAt: round.getStartedAt(),

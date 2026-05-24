@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
-import { DebitRequestedPayload, CreditRequestedPayload } from "./game-events.types";
+import type { DebitRequestedPayload, CreditRequestedPayload } from "./game-events.types";
 
 @Injectable()
 export class GameEventsPublisher {

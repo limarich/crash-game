@@ -1,9 +1,16 @@
 import { RabbitSubscribe } from "@golevelup/nestjs-rabbitmq";
 import { Injectable } from "@nestjs/common";
-import { CreditFailedPayload, CreditSucceededPayload, DebitFailedPayload, DebitSucceededPayload } from "./game-events.types";
+import type { CreditFailedPayload, CreditSucceededPayload, DebitFailedPayload, DebitSucceededPayload } from "./game-events.types";
+import { ConfirmBetUseCase } from "@/application/use-cases/confirm-bet.use-case";
+import { CancelBetUseCase } from "@/application/use-cases/cancel-bet.use-case";
 
 @Injectable()
 export class GameEventsConsumer {
+    constructor(
+        private readonly confirmBetUseCase: ConfirmBetUseCase,
+        private readonly cancelBetUseCase: CancelBetUseCase
+    ) { }
+
     @RabbitSubscribe({
         exchange: 'crash.events',
         routingKey: 'wallet.debit.succeeded',
@@ -15,7 +22,7 @@ export class GameEventsConsumer {
         },
     })
     async handleDebitSucceeded(payload: DebitSucceededPayload) {
-        // TODO: ConfirmBetUseCase
+        return this.confirmBetUseCase.execute({ betId: payload.betId })
     }
 
     @RabbitSubscribe({
@@ -29,7 +36,7 @@ export class GameEventsConsumer {
         },
     })
     async handleDebitFailed(payload: DebitFailedPayload) {
-        // TODO: CancelBetUseCase 
+        return this.cancelBetUseCase.execute({ betId: payload.betId })
     }
 
     @RabbitSubscribe({
