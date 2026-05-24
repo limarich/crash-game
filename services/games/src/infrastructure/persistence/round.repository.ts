@@ -33,6 +33,17 @@ export class RoundRepository implements IRoundRepository {
 
         return this.toDomain(record)
     }
+    async findByNonce(nonce: number) {
+        const record = await this.prismaService.round.findFirst({
+            where: { nonce }
+        })
+
+        if (!record) {
+            return null
+        }
+
+        return this.toDomain(record)
+    }
     async findHistory(page: number, limit: number) {
         const records = await this.prismaService.round.findMany({
             where: { status: 'CRASHED' },

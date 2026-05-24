@@ -1,3 +1,9 @@
+export interface VerifyChainDto {
+    nextRoundId: string
+    nextServerSeedHash: string
+    chainValid: boolean
+}
+
 export class VerifyResponseDto {
     roundId: string
     serverSeed: string | null
@@ -6,5 +12,5 @@ export class VerifyResponseDto {
     nonce: number
     crashPoint: number | null
     verified: boolean
-    chain: boolean | null
+    chain: VerifyChainDto | null
 }

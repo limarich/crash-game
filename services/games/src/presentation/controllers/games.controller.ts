@@ -91,6 +91,15 @@ export class GamesController {
             crashPoint,
         )
 
+        const nextRound = await this.roundRepository.findByNonce(round.nonce + 1)
+        const chain = nextRound
+            ? {
+                nextRoundId: nextRound.id,
+                nextServerSeedHash: nextRound.serverSeedHash,
+                chainValid: this.provablyFairService.hashSeed(serverSeed) === nextRound.serverSeedHash,
+            }
+            : null
+
         return {
             roundId: round.id,
             serverSeed,
@@ -99,7 +108,7 @@ export class GamesController {
             nonce: round.nonce,
             crashPoint,
             verified,
-            chain: null,
+            chain,
         }
     }
 
