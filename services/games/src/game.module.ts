@@ -11,6 +11,7 @@ import { CrashRoundUseCase } from "./application/use-cases/crash-round.use-case"
 import { PrismaModule } from "./infrastructure/persistence/prisma.module";
 import { ProvablyFairModule } from "./application/provably-fair/provably-fair.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
+import { GamesController } from "./presentation/controllers/games.controller";
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { MessagingModule } from "./infrastructure/messaging/messaging.module";
         ProvablyFairModule,
         MessagingModule,
     ],
+    controllers: [GamesController],
     providers: [
         {
             provide: ROUND_REPOSITORY,
