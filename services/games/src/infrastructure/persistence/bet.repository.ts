@@ -4,7 +4,7 @@ import { PrismaService } from "./prisma.service"
 import { Bet as PrismaBet } from "@/generated/prisma/client"
 import { Injectable } from "@nestjs/common"
 
-interface BetRawRecord {
+interface BetRecord {
     id: string
     round_id: string
     player_id: string
@@ -53,7 +53,7 @@ export class BetRepository implements IBetRepository {
 
     async findByPlayerAndRoundWithLock(playerId: string, roundId: string) {
         return this.prismaService.$transaction(async (tx) => {
-            const records = await tx.$queryRaw<BetRawRecord[]>`
+            const records = await tx.$queryRaw<BetRecord[]>`
                 SELECT * FROM bets
                 WHERE player_id = ${playerId}
                 AND round_id = ${roundId}
