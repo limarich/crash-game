@@ -12,6 +12,7 @@ import { PrismaModule } from "./infrastructure/persistence/prisma.module";
 import { ProvablyFairModule } from "./application/provably-fair/provably-fair.module";
 import { MessagingModule } from "./infrastructure/messaging/messaging.module";
 import { GamesController } from "./presentation/controllers/games.controller";
+import { GameGateway } from "./presentation/websocket/game.gateway";
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import { GamesController } from "./presentation/controllers/games.controller";
         StartRoundUseCase,
         CrashRoundUseCase,
         GameEngineService,
+        GameGateway,
     ],
     exports: [
         PlaceBetUseCase,
