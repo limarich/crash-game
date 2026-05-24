@@ -4,6 +4,17 @@ import { PrismaService } from "./prisma.service"
 import { Bet as PrismaBet } from "@/generated/prisma/client"
 import { Injectable } from "@nestjs/common"
 
+interface BetRawRecord {
+    id: string
+    round_id: string
+    player_id: string
+    amount_in_cents: string
+    status: string
+    created_at: Date
+    cashout_multiplier: number | null
+    payout_in_cents: string | null
+}
+
 @Injectable()
 export class BetRepository implements IBetRepository {
     constructor(private readonly prismaService: PrismaService) { }
@@ -42,17 +53,26 @@ export class BetRepository implements IBetRepository {
 
     async findByPlayerAndRoundWithLock(playerId: string, roundId: string) {
         return this.prismaService.$transaction(async (tx) => {
-            const records = await tx.$queryRaw<PrismaBet[]>`
+            const records = await tx.$queryRaw<BetRawRecord[]>`
                 SELECT * FROM bets
                 WHERE player_id = ${playerId}
                 AND round_id = ${roundId}
                 FOR UPDATE
-    `
-            if (!records.length) {
-                return null
-            }
+            `
 
-            return this.toDomain(records[0])
+            if (!records.length) return null
+
+            const record = records[0]
+            return new Bet({
+                id: record.id,
+                roundId: record.round_id,
+                playerId: record.player_id,
+                amountInCents: BigInt(record.amount_in_cents),
+                status: record.status as DomainBetStatus,
+                createdAt: record.created_at,
+                cashoutMultiplier: record.cashout_multiplier,
+                payoutInCents: record.payout_in_cents ? BigInt(record.payout_in_cents) : null,
+            })
         })
     }
 
