@@ -1,11 +1,12 @@
 import type { IRoundRepository } from "@/domain/round/round.interface";
-import { Inject, Injectable, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
+import { Inject, Injectable, OnApplicationBootstrap, OnApplicationShutdown, Optional } from "@nestjs/common";
 import { StartRoundUseCase } from "../use-cases/start-round.use-case";
 import { CrashRoundUseCase } from "../use-cases/crash-round.use-case";
 import { ProvablyFairService } from "../provably-fair/provably-fair.service";
 import { ROUND_REPOSITORY } from "@/domain/round/round.token";
 import { Round } from "@/domain/round/round.entity";
 import { randomUUID } from "crypto";
+import { GameGateway } from "@/presentation/websocket/game.gateway";
 
 const BETTING_PHASE_MS = 10_000
 const TICK_INTERVAL_MS = 100
@@ -16,12 +17,14 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
     private tickInterval: ReturnType<typeof setInterval> | null = null
     private currentRound: Round | null = null
     private nonce = 0
+
     constructor(
         @Inject(ROUND_REPOSITORY)
         private readonly roundRepository: IRoundRepository,
         private readonly startRoundUseCase: StartRoundUseCase,
         private readonly crashRoundUseCase: CrashRoundUseCase,
         private readonly provablyFairService: ProvablyFairService,
+        @Optional() private readonly gateway?: GameGateway,
     ) { }
 
     async onApplicationBootstrap() {
@@ -43,7 +46,6 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
     }
 
     private async recoverOrStart() {
-
         try {
             console.log('[GameEngine] recoverOrStart called')
             const existing = await this.roundRepository.findCurrent()
@@ -57,6 +59,8 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
                     this.startTick()
                     return;
                 }
+
+                this.gateway?.emitBettingStarted(existing)
 
                 const elapsed = Date.now() - existing.bettingEndsAt.getTime()
                 const remaining = Math.max(0, BETTING_PHASE_MS - elapsed)
@@ -96,7 +100,7 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
         await this.roundRepository.save(round)
         this.currentRound = round
 
-        // TODO: emmit round:betting-started 
+        this.gateway?.emitBettingStarted(round)
         setTimeout(() => this.runRound(), BETTING_PHASE_MS)
     }
 
@@ -105,7 +109,7 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
             const round = await this.startRoundUseCase.execute()
             this.currentRound = round
 
-            // TODO: emmit round:started
+            this.gateway?.emitRoundStarted(round)
             this.startTick()
         } catch (error) {
             console.error('[GameEngine] Failed to start round:', error)
@@ -117,7 +121,6 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
         this.stopTick()
 
         this.tickInterval = setInterval(async () => {
-
             if (!this.currentRound) {
                 return
             }
@@ -125,18 +128,15 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
             const now = Date.now()
             const multiplier = this.currentRound.getCurrentMultiplier(now)
             const crashPoint = this.currentRound.getRawCrashPoint()
+            const elapsedMs = now - this.currentRound.getStartedAt()!.getTime()
 
-            // TODO: emmit round:tick 
+            this.gateway?.emitTick(this.currentRound.id, multiplier, elapsedMs)
 
             if (multiplier >= crashPoint) {
                 this.stopTick()
                 await this.crash()
             }
-
-
-
         }, TICK_INTERVAL_MS)
-
     }
 
     private stopTick() {
@@ -151,7 +151,7 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
             const round = await this.crashRoundUseCase.execute()
             this.currentRound = round
 
-            // TODO: emmit round:crashed 
+            this.gateway?.emitCrashed(round)
             setTimeout(() => this.startBettingPhase(), CRASH_COOLDOWN_MS)
         } catch (error) {
             console.error('[GameEngine] Failed to crash round:', error)

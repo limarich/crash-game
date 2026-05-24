@@ -1,12 +1,13 @@
 import { BET_REPOSITORY } from "@/domain/bet/bet.token";
 import { ROUND_REPOSITORY } from "@/domain/round/round.token";
-import { ConflictException, Inject, Injectable, UnprocessableEntityException } from "@nestjs/common";
+import { ConflictException, Inject, Injectable, Optional, UnprocessableEntityException } from "@nestjs/common";
 import { PlaceBetInput } from "../dto/bet-operation.dto";
 import { Bet } from "@/domain/bet/bet.entity";
 import { randomUUID } from "crypto";
 import { GameEventsPublisher } from "@/infrastructure/messaging/game-events.publisher";
 import type { IRoundRepository } from "@/domain/round/round.interface";
 import type { IBetRepository } from "@/domain/bet/bet.interface";
+import { GameGateway } from "@/presentation/websocket/game.gateway";
 
 @Injectable()
 export class PlaceBetUseCase {
@@ -15,7 +16,8 @@ export class PlaceBetUseCase {
         private readonly roundRepository: IRoundRepository,
         @Inject(BET_REPOSITORY)
         private readonly betRepository: IBetRepository,
-        private readonly publisher: GameEventsPublisher
+        private readonly publisher: GameEventsPublisher,
+        @Optional() private readonly gateway?: GameGateway,
     ) { }
 
     async execute(data: PlaceBetInput) {
@@ -43,6 +45,8 @@ export class PlaceBetUseCase {
         })
 
         await this.betRepository.save(bet);
+
+        this.gateway?.emitBetPlaced(round.id, data.playerId, data.amountInCents)
 
         await this.publisher.publishDebitRequest({
             amountInCents: data.amountInCents,

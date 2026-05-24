@@ -3,8 +3,9 @@ import { BET_REPOSITORY } from "@/domain/bet/bet.token";
 import type { IRoundRepository } from "@/domain/round/round.interface";
 import { ROUND_REPOSITORY } from "@/domain/round/round.token";
 import { GameEventsPublisher } from "@/infrastructure/messaging/game-events.publisher";
-import { Inject, Injectable, UnprocessableEntityException } from "@nestjs/common";
+import { Inject, Injectable, Optional, UnprocessableEntityException } from "@nestjs/common";
 import { CashoutInput } from "../dto/bet-operation.dto";
+import { GameGateway } from "@/presentation/websocket/game.gateway";
 
 @Injectable()
 export class CashoutUseCase {
@@ -13,7 +14,8 @@ export class CashoutUseCase {
         private readonly roundRepository: IRoundRepository,
         @Inject(BET_REPOSITORY)
         private readonly betRepository: IBetRepository,
-        private readonly publisher: GameEventsPublisher
+        private readonly publisher: GameEventsPublisher,
+        @Optional() private readonly gateway?: GameGateway,
     ) { }
 
 
@@ -41,6 +43,8 @@ export class CashoutUseCase {
         }
 
         await this.betRepository.save(bet)
+
+        this.gateway?.emitBetCashedOut(round.id, data.playerId, multiplier, payoutInCents.toString())
 
         await this.publisher.publishCreditRequest({
             betId: bet.id,
