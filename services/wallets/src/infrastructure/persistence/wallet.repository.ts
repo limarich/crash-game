@@ -36,7 +36,8 @@ export class WalletRepository implements IWalletRepository {
                 WHERE player_id = ${playerId}
                 FOR UPDATE
             `
-            if (!records.length) throw new Error('Wallet not found')
+            if (!records.length) return null
+            // throw new Error('Wallet not found')
 
             const wallet = new Wallet({
                 id: records[0].id,

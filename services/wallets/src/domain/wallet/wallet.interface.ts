@@ -5,5 +5,5 @@ export interface IWalletRepository {
     save(wallet: Wallet): Promise<void>;
 
     // avoid race condition
-    debitWithLock(playerId: string, amountInCents: bigint): Promise<Wallet>
+    debitWithLock(playerId: string, amountInCents: bigint): Promise<Wallet | null>
 }

@@ -18,6 +18,10 @@ export class DebitWalletUseCase {
                 BigInt(data.amountInCents)
             )
 
+            if (!updated) {
+                return { success: false, reason: 'Wallet not found' }
+            }
+
             return { success: true, newBalanceInCents: updated.balance }
 
         } catch (error) {
