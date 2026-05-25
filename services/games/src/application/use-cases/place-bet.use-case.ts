@@ -3,6 +3,7 @@ import { ROUND_REPOSITORY } from "@/domain/round/round.token";
 import { ConflictException, Inject, Injectable, Optional, UnprocessableEntityException } from "@nestjs/common";
 import { PlaceBetInput } from "../dto/bet-operation.dto";
 import { Bet } from "@/domain/bet/bet.entity";
+import { InvalidBetAmountError } from "@/domain/bet/bet.errors";
 import { randomUUID } from "crypto";
 import { GameEventsPublisher } from "@/infrastructure/messaging/game-events.publisher";
 import type { IRoundRepository } from "@/domain/round/round.interface";
@@ -36,13 +37,21 @@ export class PlaceBetUseCase {
             throw new ConflictException('Player already has a bet in this round')
         }
 
-        const bet = new Bet({
-            id: randomUUID(),
-            roundId: round.id,
-            playerId: data.playerId,
-            amountInCents: BigInt(data.amountInCents),
-            createdAt: new Date(),
-        })
+        let bet: Bet
+        try {
+            bet = new Bet({
+                id: randomUUID(),
+                roundId: round.id,
+                playerId: data.playerId,
+                amountInCents: BigInt(data.amountInCents),
+                createdAt: new Date(),
+            })
+        } catch (err) {
+            if (err instanceof InvalidBetAmountError) {
+                throw new UnprocessableEntityException(err.message)
+            }
+            throw err
+        }
 
         await this.betRepository.save(bet);
 

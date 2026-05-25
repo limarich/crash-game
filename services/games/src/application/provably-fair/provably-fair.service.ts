@@ -23,11 +23,12 @@ export class ProvablyFairService {
         const h = parseInt(hash.slice(0, 8), 16)
         const e = Math.pow(2, 32)
 
-        // houseEdge 
+        // houseEdge
         if (h % 33 === 0) return 1.00
 
-        // long tail curve
-        return Math.floor((99 * e) / (e - h)) / 100
+        // long tail curve, capped at 100x
+        const raw = Math.floor((99 * e) / (e - h)) / 100
+        return Math.min(raw, 100)
     }
 
 
