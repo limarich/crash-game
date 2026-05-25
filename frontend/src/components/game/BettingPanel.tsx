@@ -1,39 +1,65 @@
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { Switch } from '#/components/ui/switch'
 import { cn } from '#/lib/utils'
-import type { GamePhase } from './CrashGraph'
+import { useGameStore } from '#/store/game.store'
+import { useAuthStore } from '#/store/auth.store'
+import { placeBet, cashout } from '#/lib/api'
+import { useWalletQuery, useInvalidateWallet } from '#/hooks/useWalletQuery'
+import type { GamePhase as ServerPhase } from '#/store/game.store'
+
+// Component-level phase mapped from server phase
+type UIPhase = 'betting' | 'running' | 'crashed' | 'idle'
+
+function toUIPhase(p: ServerPhase): UIPhase {
+  if (p === 'BETTING') return 'betting'
+  if (p === 'RUNNING') return 'running'
+  if (p === 'CRASHED') return 'crashed'
+  return 'idle'
+}
 
 const MIN_BET = 1
 const MAX_BET = 1000
 const CHIPS = [1, 5, 10, 50, 100]
 
-interface BettingPanelProps {
-  phase?: GamePhase
-  multiplier?: number
-  balance?: number
-  username?: string
-}
+export function BettingPanel() {
+  const { phase: serverPhase, multiplier, myBet, setMyBet } = useGameStore()
+  const { token, username } = useAuthStore()
+  const { data: wallet } = useWalletQuery()
+  const invalidateWallet = useInvalidateWallet()
 
-export function BettingPanel({
-  phase = 'betting',
-  multiplier = 1.0,
-  balance = 250.0,
-  username = 'you',
-}: BettingPanelProps) {
+  const phase = toUIPhase(serverPhase)
+  const balance = wallet ? Number(wallet.balanceInCents) / 100 : 0
+
   const [betAmount, setBetAmount] = useState(10)
   const [rawInput, setRawInput] = useState('10.00')
   const [inputError, setInputError] = useState(false)
-
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(false)
   const [autoCashout, setAutoCashout] = useState(2.0)
   const [rawAutoInput, setRawAutoInput] = useState('2.00')
 
-  const [hasBet, setHasBet] = useState(false)
+  const betMutation = useMutation({
+    mutationFn: (amountInCents: number) => placeBet(amountInCents, token!),
+    onSuccess: (bet) => {
+      setMyBet({ ...bet, playerId: bet.playerId ?? username ?? '' })
+      invalidateWallet()
+    },
+  })
 
+  const cashoutMutation = useMutation({
+    mutationFn: () => cashout(token!),
+    onSuccess: () => invalidateWallet(),
+  })
+
+  const loading = betMutation.isPending || cashoutMutation.isPending
+  const actionError = betMutation.error?.message ?? cashoutMutation.error?.message ?? null
+
+  const hasBet = !!myBet
   const potentialPayout = betAmount * multiplier
   const autoPayout = betAmount * autoCashout
+  const isLocked = phase !== 'betting'
 
-  function clampBet(v: number): number {
+  function clampBet(v: number) {
     return Math.min(MAX_BET, Math.max(MIN_BET, Math.round(v * 100) / 100))
   }
 
@@ -47,33 +73,18 @@ export function BettingPanel({
   function handleInputChange(val: string) {
     setRawInput(val)
     const n = parseFloat(val)
-    if (isNaN(n)) {
-      setInputError(true)
-      return
-    }
-    if (n < MIN_BET || n > MAX_BET) {
-      setInputError(true)
-      setBetAmount(clampBet(n))
-    } else {
-      setInputError(false)
-      setBetAmount(clampBet(n))
-    }
+    if (isNaN(n)) { setInputError(true); return }
+    setInputError(n < MIN_BET || n > MAX_BET)
+    setBetAmount(clampBet(n))
   }
 
-  function handleInputBlur() {
-    applyBet(betAmount)
-  }
-
-  function adjust(delta: number) {
-    applyBet(betAmount + delta)
-  }
+  function handleInputBlur() { applyBet(betAmount) }
+  function adjust(delta: number) { applyBet(betAmount + delta) }
 
   function handleAutoInputChange(val: string) {
     setRawAutoInput(val)
     const n = parseFloat(val)
-    if (!isNaN(n) && n >= 1.01) {
-      setAutoCashout(Math.round(n * 100) / 100)
-    }
+    if (!isNaN(n) && n >= 1.01) setAutoCashout(Math.round(n * 100) / 100)
   }
 
   function handleAutoInputBlur() {
@@ -82,10 +93,8 @@ export function BettingPanel({
     setRawAutoInput(clamped.toFixed(2))
   }
 
-  const canBet = phase === 'betting' && !hasBet
-  const canCashout = phase === 'running' && hasBet
-
-  const isLocked = phase !== 'betting'
+  const canBet = phase === 'betting' && !hasBet && !!token && !loading && !inputError
+  const canCashout = phase === 'running' && hasBet && !!token && !loading
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -94,34 +103,31 @@ export function BettingPanel({
       <div className="card-glass ring-1 ring-neon-amber/20 px-4 py-4">
         <div className="flex items-center justify-between mb-2">
           <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-dim">Balance</span>
-          <span className="font-mono text-[10px] text-text-dim">@{username}</span>
+          {username && <span className="font-mono text-[10px] text-text-dim">@{username}</span>}
         </div>
-        <p
-          className="font-mono text-[28px] font-bold text-neon-amber leading-none"
-          style={{ textShadow: '0 0 18px rgba(245,158,11,0.5), 0 0 4px rgba(245,158,11,0.8)' }}
-        >
-          <span className="text-[16px] font-normal opacity-60 mr-1">R$</span>
-          {balance.toFixed(2)}
-        </p>
-        <p className="mt-2 font-mono text-[10px] text-neon-green-soft tracking-[0.06em]">
-          +R$ 12.40 today
-        </p>
+        {token ? (
+          <>
+            <p
+              className="font-mono text-[28px] font-bold text-neon-amber leading-none"
+              style={{ textShadow: '0 0 18px rgba(245,158,11,0.5), 0 0 4px rgba(245,158,11,0.8)' }}
+            >
+              <span className="text-[16px] font-normal opacity-60 mr-1">R$</span>
+              {balance.toFixed(2)}
+            </p>
+            <p className="mt-2 font-mono text-[10px] text-neon-green-soft tracking-[0.06em]">
+              Saldo disponível
+            </p>
+          </>
+        ) : (
+          <p className="font-mono text-[13px] text-text-dim italic">Sign in to play</p>
+        )}
       </div>
 
       {/* Bet controls card */}
       <div className="card-glass flex flex-col flex-1 min-h-0">
-
-        {/* Card header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-mid">
-            Bet amount
-          </span>
-          <span
-            className={cn(
-              'font-mono text-[10px] tracking-[0.14em] uppercase',
-              isLocked ? 'text-text-dim' : 'text-neon-green',
-            )}
-          >
+          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-mid">Bet amount</span>
+          <span className={cn('font-mono text-[10px] tracking-[0.14em] uppercase', isLocked ? 'text-text-dim' : 'text-neon-green')}>
             {isLocked ? 'Locked' : 'Open'}
           </span>
         </div>
@@ -135,26 +141,19 @@ export function BettingPanel({
               disabled={isLocked}
               aria-label="Decrease"
               className={cn(
-                'w-9 h-9 shrink-0 rounded-md border font-mono text-[18px] font-light',
-                'flex items-center justify-center transition-colors duration-150',
+                'w-9 h-9 shrink-0 rounded-md border font-mono text-[18px] font-light flex items-center justify-center transition-colors duration-150',
                 isLocked
                   ? 'border-border text-text-faint cursor-not-allowed'
                   : 'border-border-strong text-text-mid hover:border-neon-green/40 hover:text-neon-green active:scale-95',
               )}
-            >
-              −
-            </button>
+            >−</button>
 
-            <div
-              className={cn(
-                'flex-1 flex items-center gap-1.5 rounded-md border px-3 h-9 transition-colors duration-150',
-                inputError
-                  ? 'border-neon-red/60 bg-neon-red/[0.05]'
-                  : isLocked
-                    ? 'border-border bg-white/[0.02]'
-                    : 'border-border-strong bg-white/[0.03] focus-within:border-neon-green/50',
-              )}
-            >
+            <div className={cn(
+              'flex-1 flex items-center gap-1.5 rounded-md border px-3 h-9 transition-colors duration-150',
+              inputError ? 'border-neon-red/60 bg-neon-red/[0.05]'
+                : isLocked ? 'border-border bg-white/[0.02]'
+                  : 'border-border-strong bg-white/[0.03] focus-within:border-neon-green/50',
+            )}>
               <span className="font-mono text-[11px] text-text-dim shrink-0">R$</span>
               <input
                 type="number"
@@ -166,8 +165,7 @@ export function BettingPanel({
                 onChange={(e) => handleInputChange(e.target.value)}
                 onBlur={handleInputBlur}
                 className={cn(
-                  'flex-1 bg-transparent font-mono text-[14px] font-medium text-right',
-                  'focus:outline-none min-w-0',
+                  'flex-1 bg-transparent font-mono text-[14px] font-medium text-right focus:outline-none min-w-0',
                   inputError ? 'text-neon-red' : isLocked ? 'text-text-dim' : 'text-text-hi',
                   '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                 )}
@@ -179,21 +177,16 @@ export function BettingPanel({
               disabled={isLocked}
               aria-label="Increase"
               className={cn(
-                'w-9 h-9 shrink-0 rounded-md border font-mono text-[18px] font-light',
-                'flex items-center justify-center transition-colors duration-150',
+                'w-9 h-9 shrink-0 rounded-md border font-mono text-[18px] font-light flex items-center justify-center transition-colors duration-150',
                 isLocked
                   ? 'border-border text-text-faint cursor-not-allowed'
                   : 'border-border-strong text-text-mid hover:border-neon-green/40 hover:text-neon-green active:scale-95',
               )}
-            >
-              +
-            </button>
+            >+</button>
           </div>
 
           {inputError && (
-            <p className="font-mono text-[10px] text-neon-red tracking-[0.06em]">
-              Min R$1 · Max R$1,000
-            </p>
+            <p className="font-mono text-[10px] text-neon-red tracking-[0.06em]">Min R$1 · Max R$1.000</p>
           )}
 
           {/* Quick chips */}
@@ -205,8 +198,7 @@ export function BettingPanel({
                 onClick={() => applyBet(c)}
                 className={cn(
                   'h-7 rounded-md border font-mono text-[11px] font-medium transition-colors duration-150',
-                  isLocked
-                    ? 'border-border text-text-faint cursor-not-allowed'
+                  isLocked ? 'border-border text-text-faint cursor-not-allowed'
                     : betAmount === c
                       ? 'border-neon-green/60 bg-neon-green/10 text-neon-green'
                       : 'border-border-strong text-text-dim hover:border-neon-green/30 hover:text-text-mid',
@@ -217,7 +209,6 @@ export function BettingPanel({
             ))}
           </div>
 
-          {/* Primary action button */}
           <PrimaryButton
             phase={phase}
             hasBet={hasBet}
@@ -226,17 +217,20 @@ export function BettingPanel({
             potentialPayout={potentialPayout}
             canBet={canBet}
             canCashout={canCashout}
-            onBet={() => setHasBet(true)}
-            onCashout={() => setHasBet(false)}
+            loading={loading}
+            loggedIn={!!token}
+            onBet={() => betMutation.mutate(Math.round(betAmount * 100))}
+            onCashout={() => cashoutMutation.mutate()}
           />
 
-          {/* Potential payout hint */}
+          {actionError && (
+            <p className="font-mono text-[10px] text-neon-red text-center">{actionError}</p>
+          )}
+
           {phase === 'running' && hasBet && (
             <p className="font-mono text-[10px] text-center tracking-[0.06em] text-text-dim">
               Current payout{' '}
-              <span className="text-neon-amber font-semibold">
-                R$ {potentialPayout.toFixed(2)}
-              </span>
+              <span className="text-neon-amber font-semibold">R$ {potentialPayout.toFixed(2)}</span>
               {' '}at <span className="text-text-mid">{multiplier.toFixed(2)}x</span>
             </p>
           )}
@@ -246,15 +240,8 @@ export function BettingPanel({
       {/* Auto-cashout card */}
       <div className="card-glass">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-mid">
-            Auto cashout
-          </span>
-          <span
-            className={cn(
-              'font-mono text-[10px] tracking-[0.14em] uppercase',
-              autoCashoutEnabled ? 'text-neon-green' : 'text-text-dim',
-            )}
-          >
+          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-mid">Auto cashout</span>
+          <span className={cn('font-mono text-[10px] tracking-[0.14em] uppercase', autoCashoutEnabled ? 'text-neon-green' : 'text-text-dim')}>
             {autoCashoutEnabled ? 'On' : 'Off'}
           </span>
         </div>
@@ -262,20 +249,14 @@ export function BettingPanel({
         <div className="px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex flex-col gap-0.5 min-w-0">
             <span className="font-mono text-[11px] text-text-body">Cash out at</span>
-            <span className="font-mono text-[10px] text-text-dim">
-              ≈ R$ {autoPayout.toFixed(2)} payout
-            </span>
+            <span className="font-mono text-[10px] text-text-dim">≈ R$ {autoPayout.toFixed(2)} payout</span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div
-              className={cn(
-                'flex items-center gap-1 rounded-md border px-2 h-8 w-[72px]',
-                autoCashoutEnabled
-                  ? 'border-border-strong bg-white/[0.03]'
-                  : 'border-border bg-white/[0.01]',
-              )}
-            >
+            <div className={cn(
+              'flex items-center gap-1 rounded-md border px-2 h-8 w-[72px]',
+              autoCashoutEnabled ? 'border-border-strong bg-white/[0.03]' : 'border-border bg-white/[0.01]',
+            )}>
               <input
                 type="number"
                 min="1.01"
@@ -285,20 +266,14 @@ export function BettingPanel({
                 onChange={(e) => handleAutoInputChange(e.target.value)}
                 onBlur={handleAutoInputBlur}
                 className={cn(
-                  'w-full bg-transparent font-mono text-[12px] font-medium text-right',
-                  'focus:outline-none',
+                  'w-full bg-transparent font-mono text-[12px] font-medium text-right focus:outline-none',
                   autoCashoutEnabled ? 'text-text-hi' : 'text-text-faint',
                   '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                 )}
               />
               <span className="font-mono text-[10px] text-text-dim shrink-0">x</span>
             </div>
-
-            <Switch
-              checked={autoCashoutEnabled}
-              onCheckedChange={setAutoCashoutEnabled}
-              aria-label="Toggle auto cashout"
-            />
+            <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} aria-label="Toggle auto cashout" />
           </div>
         </div>
       </div>
@@ -308,20 +283,29 @@ export function BettingPanel({
 }
 
 interface PrimaryButtonProps {
-  phase: GamePhase
+  phase: UIPhase
   hasBet: boolean
   betAmount: number
   multiplier: number
   potentialPayout: number
   canBet: boolean
   canCashout: boolean
+  loading: boolean
+  loggedIn: boolean
   onBet: () => void
   onCashout: () => void
 }
 
-function PrimaryButton({
-  phase, hasBet, betAmount, potentialPayout, canBet, canCashout, onBet, onCashout,
-}: PrimaryButtonProps) {
+function PrimaryButton({ phase, hasBet, betAmount, potentialPayout, canBet, canCashout, loading, loggedIn, onBet, onCashout }: PrimaryButtonProps) {
+  if (!loggedIn) {
+    return (
+      <button disabled className="w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 border border-border bg-white/[0.02] cursor-not-allowed">
+        <span className="font-mono text-[13px] font-semibold text-text-dim tracking-[0.04em]">Sign in to play</span>
+        <span className="font-mono text-[10px] text-text-faint tracking-[0.04em]">Login required</span>
+      </button>
+    )
+  }
+
   if (phase === 'running' && hasBet) {
     return (
       <button
@@ -329,33 +313,28 @@ function PrimaryButton({
         disabled={!canCashout}
         className={cn(
           'w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 transition-all duration-150',
-          'border border-neon-amber/50 bg-neon-amber/10',
-          'hover:bg-neon-amber/18 hover:border-neon-amber/70 active:scale-[0.98]',
+          'border border-neon-amber/50 bg-neon-amber/10 hover:bg-neon-amber/18 hover:border-neon-amber/70 active:scale-[0.98]',
+          !canCashout && 'opacity-60 cursor-not-allowed',
         )}
         style={{ boxShadow: '0 0 20px rgba(245,158,11,0.15)' }}
       >
         <span className="font-mono text-[14px] font-bold tracking-[0.06em] text-neon-amber">
-          Cash out
+          {loading ? 'Processing…' : 'Cash out'}
         </span>
-        <span className="font-mono text-[10px] text-neon-amber/70 tracking-[0.04em]">
-          → R$ {potentialPayout.toFixed(2)}
-        </span>
+        {!loading && (
+          <span className="font-mono text-[10px] text-neon-amber/70 tracking-[0.04em]">
+            → R$ {potentialPayout.toFixed(2)}
+          </span>
+        )}
       </button>
     )
   }
 
   if (phase === 'running' && !hasBet) {
     return (
-      <button
-        disabled
-        className="w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 border border-border bg-white/[0.02] cursor-not-allowed"
-      >
-        <span className="font-mono text-[13px] font-semibold text-text-dim tracking-[0.04em]">
-          Round in progress
-        </span>
-        <span className="font-mono text-[10px] text-text-faint tracking-[0.04em]">
-          Wait for next betting window
-        </span>
+      <button disabled className="w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 border border-border bg-white/[0.02] cursor-not-allowed">
+        <span className="font-mono text-[13px] font-semibold text-text-dim tracking-[0.04em]">Round in progress</span>
+        <span className="font-mono text-[10px] text-text-faint tracking-[0.04em]">Wait for next betting window</span>
       </button>
     )
   }
@@ -373,20 +352,10 @@ function PrimaryButton({
         )}
         style={canBet ? { boxShadow: '0 0 20px rgba(0,255,136,0.12)' } : undefined}
       >
-        <span
-          className={cn(
-            'font-mono text-[14px] font-bold tracking-[0.06em]',
-            canBet ? 'text-neon-green' : 'text-text-dim',
-          )}
-        >
-          {hasBet ? 'Confirmed' : `Bet R$ ${betAmount.toFixed(2)}`}
+        <span className={cn('font-mono text-[14px] font-bold tracking-[0.06em]', canBet ? 'text-neon-green' : 'text-text-dim')}>
+          {loading ? 'Placing…' : hasBet ? 'Confirmed' : `Bet R$ ${betAmount.toFixed(2)}`}
         </span>
-        <span
-          className={cn(
-            'font-mono text-[10px] tracking-[0.04em]',
-            canBet ? 'text-neon-green/60' : 'text-text-faint',
-          )}
-        >
+        <span className={cn('font-mono text-[10px] tracking-[0.04em]', canBet ? 'text-neon-green/60' : 'text-text-faint')}>
           {hasBet ? 'Good luck!' : 'Locks at countdown end'}
         </span>
       </button>
@@ -394,16 +363,9 @@ function PrimaryButton({
   }
 
   return (
-    <button
-      disabled
-      className="w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 border border-border bg-white/[0.02] cursor-not-allowed"
-    >
-      <span className="font-mono text-[13px] font-semibold text-text-dim tracking-[0.04em]">
-        Crashed
-      </span>
-      <span className="font-mono text-[10px] text-text-faint tracking-[0.04em]">
-        New round soon
-      </span>
+    <button disabled className="w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 border border-border bg-white/[0.02] cursor-not-allowed">
+      <span className="font-mono text-[13px] font-semibold text-text-dim tracking-[0.04em]">Crashed</span>
+      <span className="font-mono text-[10px] text-text-faint tracking-[0.04em]">New round soon</span>
     </button>
   )
 }

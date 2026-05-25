@@ -1,20 +1,13 @@
+import { useMemo } from 'react'
 import { cn } from '#/lib/utils'
 import { SegDisplay } from './SegDisplay'
+import { useGameStore } from '#/store/game.store'
 
 export type GamePhase = 'betting' | 'running' | 'crashed'
 
-interface CrashGraphProps {
-  phase: GamePhase
-  multiplier: number
-  roundId: number
-  seedHash: string
-  bettingProgress: number
-  bettingSecondsLeft: number
-  crashPoint?: number
-}
-
 const W = 1000
 const H = 400
+const BETTING_PHASE_MS = 10_000
 
 function yFor(m: number): number {
   const y = H - 20 - (Math.log(Math.max(m, 1)) / Math.log(8)) * (H - 60)
@@ -38,18 +31,26 @@ function buildCurve(multiplier: number) {
   return { path, areaPath, xEnd, yEnd }
 }
 
-export function CrashGraph({
-  phase,
-  multiplier,
-  roundId,
-  seedHash,
-  bettingProgress,
-  bettingSecondsLeft,
-  crashPoint,
-}: CrashGraphProps) {
-  const { path, areaPath, xEnd, yEnd } = buildCurve(multiplier)
+export function CrashGraph() {
+  const { phase: serverPhase, multiplier, bettingEndsAt, serverSeedHash, crashPoint, currentRound } = useGameStore()
+
+  const phase: GamePhase =
+    serverPhase === 'BETTING' ? 'betting'
+    : serverPhase === 'RUNNING' ? 'running'
+    : serverPhase === 'CRASHED' ? 'crashed'
+    : 'betting'
+
+  const { path, areaPath, xEnd, yEnd } = useMemo(() => buildCurve(multiplier), [multiplier])
   const stroke = phase === 'crashed' ? '#ff3355' : '#00ff88'
   const fillId = phase === 'crashed' ? 'fillRed' : 'fillGreen'
+
+  const roundId = currentRound?.nonce ?? '—'
+  const seedHash = serverSeedHash ?? ''
+
+  const now = Date.now()
+  const bettingEndsMs = bettingEndsAt ? bettingEndsAt.getTime() : now + BETTING_PHASE_MS
+  const bettingSecondsLeft = Math.max(0, (bettingEndsMs - now) / 1000)
+  const bettingProgress = Math.max(0, Math.min(1, 1 - bettingSecondsLeft / (BETTING_PHASE_MS / 1000)))
 
   const stateLabel = { betting: 'Place bets', running: 'Round live', crashed: 'Round over' }[phase]
   const crashLabel = {
@@ -58,12 +59,14 @@ export function CrashGraph({
     crashed: `Busted at ${(crashPoint ?? multiplier).toFixed(2)}x`,
   }[phase]
 
+  function copyHash() {
+    if (seedHash) navigator.clipboard.writeText(seedHash)
+  }
+
   return (
     <div className="card-glass flex flex-col min-h-[480px]">
-      {/* Stage */}
       <div className="crash-stage relative flex-1 min-h-[380px] overflow-hidden rounded-lg" data-state={phase}>
 
-        {/* Internal Grid */}
         <div className="crash-grid absolute inset-0 pointer-events-none" />
 
         {/* Y-Axis */}
@@ -128,24 +131,20 @@ export function CrashGraph({
         </svg>
 
         {/* State Badge */}
-        <div
-          className={cn(
-            'absolute top-4 left-4 z-[4] flex items-center gap-2 px-3 py-1.5 rounded-pill',
-            'border backdrop-blur-sm bg-black/50',
-            'font-mono text-[10px] tracking-[0.2em] uppercase',
-            phase === 'betting' && 'border-neon-amber/50 text-neon-amber',
-            phase === 'running' && 'border-neon-green/50 text-neon-green',
-            phase === 'crashed' && 'border-neon-red/60 text-neon-red',
-          )}
-        >
-          <span
-            className={cn(
-              'w-2 h-2 rounded-full shrink-0',
-              phase === 'betting' && 'bg-neon-amber shadow-[0_0_8px_var(--neon-amber)]',
-              phase === 'running' && 'bg-neon-green shadow-[0_0_8px_var(--neon-green)]',
-              phase === 'crashed' && 'bg-neon-red   shadow-[0_0_8px_var(--neon-red)]',
-            )}
-          />
+        <div className={cn(
+          'absolute top-4 left-4 z-[4] flex items-center gap-2 px-3 py-1.5 rounded-pill',
+          'border backdrop-blur-sm bg-black/50',
+          'font-mono text-[10px] tracking-[0.2em] uppercase',
+          phase === 'betting' && 'border-neon-amber/50 text-neon-amber',
+          phase === 'running' && 'border-neon-green/50 text-neon-green',
+          phase === 'crashed' && 'border-neon-red/60 text-neon-red',
+        )}>
+          <span className={cn(
+            'w-2 h-2 rounded-full shrink-0',
+            phase === 'betting' && 'bg-neon-amber shadow-[0_0_8px_var(--neon-amber)]',
+            phase === 'running' && 'bg-neon-green shadow-[0_0_8px_var(--neon-green)]',
+            phase === 'crashed' && 'bg-neon-red shadow-[0_0_8px_var(--neon-red)]',
+          )} />
           {stateLabel}
         </div>
 
@@ -197,7 +196,7 @@ export function CrashGraph({
         )}
 
         {/* Seed hash */}
-        {phase === 'betting' && (
+        {phase === 'betting' && seedHash && (
           <div className="absolute bottom-4 left-4 right-4 z-[4] flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-black/45 backdrop-blur-sm">
             <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-text-dim shrink-0">
               Server seed hash
@@ -205,7 +204,10 @@ export function CrashGraph({
             <span className="font-mono text-[11px] text-neon-cyan tracking-[0.04em] truncate min-w-0 flex-1">
               {seedHash}
             </span>
-            <button className="font-mono text-[10px] tracking-[0.12em] uppercase text-text-mid hover:text-neon-cyan transition-colors duration-150 shrink-0">
+            <button
+              onClick={copyHash}
+              className="font-mono text-[10px] tracking-[0.12em] uppercase text-text-mid hover:text-neon-cyan transition-colors duration-150 shrink-0"
+            >
               Copy
             </button>
           </div>
