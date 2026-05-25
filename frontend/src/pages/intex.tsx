@@ -3,6 +3,7 @@ import { TopBar } from '#/components/chrome/TopBar'
 import { CrashGraph } from '#/components/game/CrashGraph'
 import { BetsList } from '#/components/game/BetsList'
 import { BettingPanel } from '#/components/game/BettingPanel'
+import { RoundHistory } from '#/components/game/RoundHistory'
 
 const DEMO_PHASE = 'betting' as const
 const DEMO_MULTIPLIER = 2.47
@@ -27,14 +28,17 @@ export function Home() {
                 >
                     <BettingPanel phase={DEMO_PHASE} multiplier={DEMO_MULTIPLIER} />
 
-                    <CrashGraph
-                        phase={DEMO_PHASE}
-                        multiplier={DEMO_MULTIPLIER}
-                        roundId={DEMO_ROUND_ID}
-                        seedHash={DEMO_SEED_HASH}
-                        bettingProgress={DEMO_BETTING_PROGRESS}
-                        bettingSecondsLeft={DEMO_BETTING_SECONDS_LEFT}
-                    />
+                    <div className="flex flex-col gap-3 min-w-0">
+                        <CrashGraph
+                            phase={DEMO_PHASE}
+                            multiplier={DEMO_MULTIPLIER}
+                            roundId={DEMO_ROUND_ID}
+                            seedHash={DEMO_SEED_HASH}
+                            bettingProgress={DEMO_BETTING_PROGRESS}
+                            bettingSecondsLeft={DEMO_BETTING_SECONDS_LEFT}
+                        />
+                        <RoundHistory currentRoundId={DEMO_ROUND_ID} />
+                    </div>
 
                     <BetsList phase={DEMO_PHASE} />
                 </main>
