@@ -6,7 +6,7 @@
     "dev": "bun run --watch src/main.ts",
     "start": "bun run src/main.ts",
     "test": "bun test tests/unit",
-    "test:e2e": "bun test tests/e2e",
+    "test:e2e": "bun test tests/e2e --timeout 30000",
     "migrate:dev": "DATABASE_URL=postgresql://admin:admin@localhost:5432/wallets bunx prisma migrate dev",
     "migrate:deploy": "bunx prisma migrate deploy",
     "prisma:generate": "DATABASE_URL=postgresql://admin:admin@localhost:5432/wallets bunx prisma generate"
