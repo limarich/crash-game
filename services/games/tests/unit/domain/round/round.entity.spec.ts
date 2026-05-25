@@ -72,6 +72,13 @@ describe('Round', () => {
             round.crash()
             expect(() => round.crash()).toThrow(InvalidStateTransitionError)
         })
+
+        it('should throw InvalidStateTransitionError when calling start() on a CRASHED round', () => {
+            const round = makeRound()
+            round.start()
+            round.crash()
+            expect(() => round.start()).toThrow(InvalidStateTransitionError)
+        })
     })
 
     describe('provably fair', () => {
@@ -132,6 +139,14 @@ describe('Round', () => {
             round.start()
             const now = round.getStartedAt()!.getTime() + 15000
             expect(round.getCurrentMultiplier(now)).toBe(round.getCurrentMultiplier(now))
+        })
+
+        it('should return pinned value at t=30000ms — regression guard for multiplier formula', () => {
+            const round = makeRound()
+            round.start()
+            const start = round.getStartedAt()!.getTime()
+            const expected = Math.pow(1.0024, 300)
+            expect(round.getCurrentMultiplier(start + 30000)).toBe(expected)
         })
     })
 

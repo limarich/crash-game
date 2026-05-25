@@ -72,6 +72,13 @@ describe('ProvablyFairService', () => {
         expect(cp).toBeGreaterThanOrEqual(1.00)
       }
     })
+
+    it('should return known crash point for known inputs — regression pin', () => {
+      const serverSeed = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+      const clientSeed = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+      const nonce = 1
+      expect(service.calculateCrashPoint(serverSeed, clientSeed, nonce)).toBe(6.59)
+    })
   })
 
   describe('verify', () => {

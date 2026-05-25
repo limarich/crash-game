@@ -100,6 +100,19 @@ describe('Bet', () => {
             bet.cashout(2.5)
             expect(() => bet.cashout(3.0)).toThrow(InvalidBetStateError)
         })
+
+        it('should throw InvalidBetStateError when confirming a CANCELLED bet', () => {
+            const bet = makeBet()
+            bet.cancel()
+            expect(() => bet.confirm()).toThrow(InvalidBetStateError)
+        })
+
+        it('should throw InvalidBetStateError when cashing out a LOST bet', () => {
+            const bet = makeBet()
+            bet.confirm()
+            bet.lose()
+            expect(() => bet.cashout(2.0)).toThrow(InvalidBetStateError)
+        })
     })
 
     describe('cashout payout calculation', () => {
@@ -135,6 +148,13 @@ describe('Bet', () => {
             bet.confirm()
             bet.cashout(2.0)
             expect(bet.getPayoutInCents()).toBe(2000n)
+        })
+
+        it('should calculate payout correctly for maximum bet at high multiplier without float overflow', () => {
+            const bet = makeBet({ amountInCents: 100_000n })
+            bet.confirm()
+            bet.cashout(99.99)
+            expect(bet.getPayoutInCents()).toBe(9_999_000n)
         })
     })
 

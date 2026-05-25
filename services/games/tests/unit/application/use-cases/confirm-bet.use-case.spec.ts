@@ -40,4 +40,14 @@ describe('ConfirmBetUseCase', () => {
         expect(repository.save).toHaveBeenCalledTimes(1)
         expect(repository.save).toHaveBeenCalledWith(bet)
     })
+
+    it('should throw when wallet.debit.succeeded is delivered twice for the same bet', async () => {
+        const bet = makeBet()
+        bet.confirm()
+        const repository = makeMockRepository(bet)
+        const useCase = new ConfirmBetUseCase(repository)
+
+        await expect(useCase.execute({ betId: 'bet-1' })).rejects.toThrow()
+        expect(repository.save).not.toHaveBeenCalled()
+    })
 })

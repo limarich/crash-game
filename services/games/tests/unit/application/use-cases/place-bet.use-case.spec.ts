@@ -33,7 +33,7 @@ const makeMockRepositories = () => ({
         findById: mock(() => Promise.resolve(null)),
         findHistory: mock(() => Promise.resolve([])),
         save: mock(() => Promise.resolve()),
-    } as IRoundRepository,
+    } as unknown as IRoundRepository,
     betRepository: {
         findById: mock(() => Promise.resolve(null)),
         findByRoundId: mock(() => Promise.resolve([])),
@@ -41,7 +41,7 @@ const makeMockRepositories = () => ({
         findByPlayerAndRoundWithLock: mock(() => Promise.resolve(null)),
         findByPlayer: mock(() => Promise.resolve([])),
         save: mock(() => Promise.resolve()),
-    } as IBetRepository,
+    } as unknown as IBetRepository,
     publisher: {
         publishDebitRequest: mock(() => Promise.resolve()),
         publishCreditRequest: mock(() => Promise.resolve()),
@@ -101,5 +101,21 @@ describe('PlaceBetUseCase', () => {
         const bet = await useCase.execute({ playerId: 'player-1', amountInCents: '5000' })
 
         expect(bet.amountInCents).toBe(5000n)
+    })
+
+    it('should throw when amountInCents is a non-numeric string', async () => {
+        roundRepository.findCurrent = mock(() => Promise.resolve(makeRound('BETTING')))
+        const useCase = new PlaceBetUseCase(roundRepository, betRepository, publisher)
+
+        expect(() => useCase.execute({ playerId: 'player-1', amountInCents: 'abc' }))
+            .toThrow()
+    })
+
+    it('should throw when amountInCents contains decimals', async () => {
+        roundRepository.findCurrent = mock(() => Promise.resolve(makeRound('BETTING')))
+        const useCase = new PlaceBetUseCase(roundRepository, betRepository, publisher)
+
+        expect(() => useCase.execute({ playerId: 'player-1', amountInCents: '100.5' }))
+            .toThrow()
     })
 })

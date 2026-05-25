@@ -45,7 +45,7 @@ const makeMockRepositories = (round: Round | null, bets: Bet[] = []) => ({
         findById: mock(() => Promise.resolve(null)),
         findHistory: mock(() => Promise.resolve([])),
         save: mock(() => Promise.resolve()),
-    } as IRoundRepository,
+    } as unknown as IRoundRepository,
     betRepository: {
         findById: mock(() => Promise.resolve(null)),
         findByRoundId: mock(() => Promise.resolve(bets)),
@@ -53,7 +53,7 @@ const makeMockRepositories = (round: Round | null, bets: Bet[] = []) => ({
         findByPlayerAndRoundWithLock: mock(() => Promise.resolve(null)),
         findByPlayer: mock(() => Promise.resolve([])),
         save: mock(() => Promise.resolve()),
-    } as IBetRepository,
+    } as unknown as IBetRepository,
 })
 
 describe('CrashRoundUseCase', () => {
@@ -114,5 +114,32 @@ describe('CrashRoundUseCase', () => {
         expect(confirmedBet.getStatus()).toBe('LOST')
         expect(betRepository.save).toHaveBeenCalledTimes(1)
         expect(betRepository.save).toHaveBeenCalledWith(confirmedBet)
+    })
+
+    it('should ignore CASHED_OUT bets when crashing', async () => {
+        const round = makeRunningRound()
+        const cashedOutBet = makeConfirmedBet('bet-cashedout')
+        cashedOutBet.cashout(2.0)
+        const confirmedBet = makeConfirmedBet('bet-confirmed')
+        const { roundRepository, betRepository } = makeMockRepositories(round, [cashedOutBet, confirmedBet])
+        const useCase = new CrashRoundUseCase(roundRepository, betRepository)
+
+        await useCase.execute()
+
+        expect(cashedOutBet.getStatus()).toBe('CASHED_OUT')
+        expect(confirmedBet.getStatus()).toBe('LOST')
+        expect(betRepository.save).toHaveBeenCalledTimes(1)
+        expect(betRepository.save).toHaveBeenCalledWith(confirmedBet)
+    })
+
+    it('should handle empty bets list gracefully', async () => {
+        const round = makeRunningRound()
+        const { roundRepository, betRepository } = makeMockRepositories(round, [])
+        const useCase = new CrashRoundUseCase(roundRepository, betRepository)
+
+        const result = await useCase.execute()
+
+        expect(result.getStatus()).toBe('CRASHED')
+        expect(betRepository.save).not.toHaveBeenCalled()
     })
 })
