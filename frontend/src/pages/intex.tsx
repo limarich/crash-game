@@ -1,6 +1,7 @@
 import { Background } from '#/components/chrome/Background'
 import { TopBar } from '#/components/chrome/TopBar'
 import { CrashGraph } from '#/components/game/CrashGraph'
+import { BetsList } from '#/components/game/BetsList'
 
 const DEMO_PHASE = 'running' as const
 const DEMO_MULTIPLIER = 2.47
@@ -34,7 +35,7 @@ export function Home() {
                         bettingSecondsLeft={DEMO_BETTING_SECONDS_LEFT}
                     />
 
-                    <div className="card-glass p-5 min-h-[200px]" />
+                    <BetsList phase={DEMO_PHASE} />
                 </main>
             </div>
         </>
