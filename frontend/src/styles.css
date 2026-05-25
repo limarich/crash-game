@@ -173,6 +173,74 @@
 
 @layer components {
 
+  /* 7-segment display glow */
+  .seg {
+    font-family: var(--f-seg);
+    font-size: clamp(72px, 12vw, 152px);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 0.9;
+    white-space: nowrap;
+    color: var(--neon-green);
+    text-shadow:
+      0 0 4px rgba(0, 255, 136, 0.9),
+      0 0 18px rgba(0, 255, 136, 0.7),
+      0 0 38px rgba(0, 255, 136, 0.5),
+      0 0 80px rgba(0, 255, 136, 0.3);
+  }
+
+  .seg .ghost {
+    position: absolute;
+    inset: 0;
+    color: rgba(0, 255, 136, 0.07);
+    text-shadow: none;
+    pointer-events: none;
+  }
+
+  .crash-stage[data-state="betting"] .seg {
+    color: var(--text-mid);
+    text-shadow: 0 0 8px rgba(120, 130, 200, 0.3);
+  }
+
+  .crash-stage[data-state="betting"] .seg .ghost {
+    color: rgba(120, 130, 200, 0.07);
+  }
+
+  .crash-stage[data-state="crashed"] .seg {
+    color: var(--neon-red);
+    text-shadow:
+      0 0 6px rgba(255, 51, 85, 0.95),
+      0 0 22px rgba(255, 51, 85, 0.7),
+      0 0 50px rgba(255, 51, 85, 0.4);
+  }
+
+  .crash-stage[data-state="crashed"] .seg .ghost {
+    color: rgba(255, 51, 85, 0.08);
+  }
+
+  /* stage background */
+  .crash-stage {
+    background:
+      radial-gradient(800px 400px at 50% 100%, rgba(0, 255, 136, 0.06), transparent 70%),
+      linear-gradient(180deg, rgba(8, 10, 24, 0.4), rgba(6, 7, 18, 0.7));
+  }
+
+  .crash-stage[data-state="crashed"] {
+    background:
+      radial-gradient(800px 500px at 50% 50%, rgba(255, 51, 85, 0.25), transparent 70%),
+      linear-gradient(180deg, rgba(40, 5, 15, 0.6), rgba(20, 0, 8, 0.85));
+  }
+
+  /* internal grid background */
+  .crash-grid {
+    background-image:
+      linear-gradient(rgba(120, 130, 200, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 130, 200, 0.06) 1px, transparent 1px);
+    background-size: 60px 48px;
+    mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 100%);
+  }
+
   /* glassmorphism */
   .card-glass {
     background: var(--glass-bg);

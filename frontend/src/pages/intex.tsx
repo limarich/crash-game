@@ -1,5 +1,13 @@
 import { Background } from '#/components/chrome/Background'
 import { TopBar } from '#/components/chrome/TopBar'
+import { CrashGraph } from '#/components/game/CrashGraph'
+
+const DEMO_PHASE = 'running' as const
+const DEMO_MULTIPLIER = 2.47
+const DEMO_ROUND_ID = 89433
+const DEMO_SEED_HASH = 'abc12345def67890abc12345def67890abc12345def67890abc12345ef67890ab'
+const DEMO_BETTING_PROGRESS = 0.6
+const DEMO_BETTING_SECONDS_LEFT = 2.4
 
 export function Home() {
     return (
@@ -17,7 +25,14 @@ export function Home() {
                 >
                     <div className="card-glass p-5 min-h-[200px]" />
 
-                    <div className="card-glass p-5 min-h-[520px]" />
+                    <CrashGraph
+                        phase={DEMO_PHASE}
+                        multiplier={DEMO_MULTIPLIER}
+                        roundId={DEMO_ROUND_ID}
+                        seedHash={DEMO_SEED_HASH}
+                        bettingProgress={DEMO_BETTING_PROGRESS}
+                        bettingSecondsLeft={DEMO_BETTING_SECONDS_LEFT}
+                    />
 
                     <div className="card-glass p-5 min-h-[200px]" />
                 </main>
