@@ -2,7 +2,80 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* CSS variables */
+/* TAILWIND v4 THEME  */
+@theme {
+  /* background colors */
+  --color-bg-base: #06060c;
+  --color-bg-1: #0a0a14;
+  --color-bg-2: #0f1020;
+  --color-bg-3: #15172a;
+
+  /* glassmorphism */
+  --color-glass: rgba(18, 20, 38, 0.55);
+  --color-glass-strong: rgba(22, 24, 44, 0.78);
+  --color-glass-border: rgba(120, 130, 200, 0.14);
+  --color-glass-border-strong: rgba(150, 160, 220, 0.28);
+
+  /* neons */
+  --color-neon-green: #00ff88;
+  --color-neon-green-soft: #16e58a;
+  --color-neon-red: #ff3355;
+  --color-neon-red-soft: #ff5577;
+  --color-neon-amber: #f59e0b;
+  --color-neon-amber-soft: #fbbf24;
+  --color-neon-cyan: #22e1ff;
+  --color-neon-magenta: #ff3df6;
+  --color-neon-violet: #8b5cf6;
+
+  /* text */
+  --color-text-hi: #f4f5ff;
+  --color-text-body: #c8cbe0;
+  --color-text-mid: #8b90b0;
+  --color-text-dim: #5a607e;
+  --color-text-faint: #383d56;
+
+  /* borders */
+  --color-border: rgba(120, 130, 200, 0.12);
+  --color-border-strong: rgba(150, 160, 220, 0.24);
+
+  /* shadcn aliases */
+  --color-background: #06060c;
+  --color-foreground: #f4f5ff;
+  --color-primary: #00ff88;
+  --color-primary-foreground: #002817;
+  --color-secondary: rgba(22, 24, 44, 0.78);
+  --color-secondary-foreground: #f4f5ff;
+  --color-destructive: #ff3355;
+  --color-muted: rgba(18, 20, 38, 0.55);
+  --color-muted-foreground: #8b90b0;
+  --color-accent: #f59e0b;
+  --color-accent-foreground: #1c1100;
+  --color-popover: rgba(12, 14, 28, 0.95);
+  --color-popover-foreground: #f4f5ff;
+  --color-card: rgba(18, 20, 38, 0.55);
+  --color-card-foreground: #c8cbe0;
+  --color-input: rgba(150, 160, 220, 0.28);
+  --color-ring: #22e1ff;
+
+  /* fonts */
+  --font-family-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-family-display: "Space Grotesk", Inter, system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-family-seg: "Share Tech Mono", DSEG7, VT323, ui-monospace, monospace;
+
+  /* glows (box-shadow) */
+  --shadow-glow-green: 0 0 24px rgba(0, 255, 136, 0.55), 0 0 4px rgba(0, 255, 136, 0.9);
+  --shadow-glow-amber: 0 0 24px rgba(245, 158, 11, 0.55), 0 0 4px rgba(245, 158, 11, 0.9);
+  --shadow-glow-red: 0 0 32px rgba(255, 51, 85, 0.6), 0 0 6px rgba(255, 51, 85, 0.9);
+  --shadow-glow-cyan: 0 0 20px rgba(34, 225, 255, 0.45);
+
+  /* radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+}
 
 :root {
   --bg-base: #06060c;
@@ -95,5 +168,29 @@
 
   input:focus {
     outline: none;
+  }
+}
+
+@layer components {
+
+  /* glassmorphism */
+  .card-glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-lg);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(14px) saturate(1.1);
+  }
+
+  .card-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0));
+    mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+    mask-composite: exclude;
+    pointer-events: none;
   }
 }
