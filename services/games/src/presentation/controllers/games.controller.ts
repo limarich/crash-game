@@ -96,7 +96,7 @@ export class GamesController {
             ? {
                 nextRoundId: nextRound.id,
                 nextServerSeedHash: nextRound.serverSeedHash,
-                chainValid: this.provablyFairService.hashSeed(serverSeed) === nextRound.serverSeedHash,
+                chainValid: this.provablyFairService.verifyChain(serverSeed, nextRound.serverSeedHash),
             }
             : null
 

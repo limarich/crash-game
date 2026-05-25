@@ -77,7 +77,9 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
     private async startBettingPhase() {
         this.nonce += 1
 
-        const serverSeed = this.provablyFairService.generateinitialSeed()
+        const serverSeed = this.currentRound
+            ? this.provablyFairService.nextSeed(this.currentRound.getRawServerSeed())
+            : this.provablyFairService.generateinitialSeed()
         const serverSeedHash = this.provablyFairService.hashSeed(serverSeed)
         const clientSeed = this.provablyFairService.generateinitialSeed()
         const crashPoint = this.provablyFairService.calculateCrashPoint(
