@@ -2,8 +2,9 @@ import { Background } from '#/components/chrome/Background'
 import { TopBar } from '#/components/chrome/TopBar'
 import { CrashGraph } from '#/components/game/CrashGraph'
 import { BetsList } from '#/components/game/BetsList'
+import { BettingPanel } from '#/components/game/BettingPanel'
 
-const DEMO_PHASE = 'running' as const
+const DEMO_PHASE = 'betting' as const
 const DEMO_MULTIPLIER = 2.47
 const DEMO_ROUND_ID = 89433
 const DEMO_SEED_HASH = 'abc12345def67890abc12345def67890abc12345def67890abc12345ef67890ab'
@@ -24,7 +25,7 @@ export function Home() {
             xl:[grid-template-columns:340px_minmax(0,1fr)_360px]
             [&>*]:min-w-0"
                 >
-                    <div className="card-glass p-5 min-h-[200px]" />
+                    <BettingPanel phase={DEMO_PHASE} multiplier={DEMO_MULTIPLIER} />
 
                     <CrashGraph
                         phase={DEMO_PHASE}
