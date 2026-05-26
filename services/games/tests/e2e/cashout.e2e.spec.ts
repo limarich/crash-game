@@ -64,7 +64,7 @@ describe('Cashout E2E', () => {
 
     describe('Cashout without active bet', () => {
         it('should return 422 when player has no confirmed bet during RUNNING', async () => {
-            await waitForPhase('RUNNING', 20_000)
+            await waitForPhase('RUNNING')
             const res = await fetch(`${GAMES_URL}/bet/cashout`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },

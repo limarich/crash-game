@@ -3,7 +3,39 @@ _format_version: "3.0"
 services:
   - name: games-service
     url: http://games:4001
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 120
+          policy: local
+          limit_by: ip
     routes:
+      - name: games-bet-route
+        paths:
+          - ~/games/bet$
+        methods:
+          - POST
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 20
+              policy: local
+              limit_by: ip
+
+      - name: games-cashout-route
+        paths:
+          - ~/games/bet/cashout$
+        methods:
+          - POST
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 20
+              policy: local
+              limit_by: ip
+
       - name: games-routes
         paths:
           - /games
@@ -11,7 +43,26 @@ services:
 
   - name: wallets-service
     url: http://wallets:4002
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 120
+          policy: local
+          limit_by: ip
     routes:
+      - name: wallets-create-route
+        paths:
+          - ~/wallets$
+        methods:
+          - POST
+        strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 10
+              policy: local
+              limit_by: ip
+
       - name: wallets-routes
         paths:
           - /wallets
