@@ -269,8 +269,23 @@
   100% { opacity: 0; }
 }
 
+@keyframes cashout-pulse {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(245,158,11,0.2), 0 0 0px rgba(245,158,11,0);
+    border-color: rgba(245,158,11,0.5);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(245,158,11,0.55), 0 0 8px rgba(245,158,11,0.8);
+    border-color: rgba(245,158,11,0.85);
+  }
+}
+
 @layer utilities {
   .animate-crash-flash {
     animation: crash-flash 600ms ease-out forwards;
+  }
+
+  .animate-cashout-pulse {
+    animation: cashout-pulse 1.2s ease-in-out infinite;
   }
 }

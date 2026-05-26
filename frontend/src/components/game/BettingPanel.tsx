@@ -347,11 +347,11 @@ function PrimaryButton({ phase, hasBet, betAmount, potentialPayout, canBet, canC
         onClick={onCashout}
         disabled={!canCashout}
         className={cn(
-          'w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 transition-all duration-150',
-          'border border-neon-amber/50 bg-neon-amber/10 hover:bg-neon-amber/18 hover:border-neon-amber/70 active:scale-[0.98]',
+          'w-full rounded-lg py-3 px-4 flex flex-col items-center gap-0.5 transition-colors duration-150',
+          'border bg-neon-amber/10 hover:bg-neon-amber/18 active:scale-[0.98]',
+          canCashout && !loading ? 'animate-cashout-pulse' : 'border-neon-amber/50',
           !canCashout && 'opacity-60 cursor-not-allowed',
         )}
-        style={{ boxShadow: '0 0 20px rgba(245,158,11,0.15)' }}
       >
         <span className="font-mono text-[14px] font-bold tracking-[0.06em] text-neon-amber">
           {loading ? 'Processing…' : 'Cash out'}
