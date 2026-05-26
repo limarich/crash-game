@@ -12,12 +12,14 @@ import {
 } from '#/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '#/components/ui/tooltip'
 import { LoginModal } from './LoginModal'
+import { BetHistoryModal } from './BetHistoryModal'
 import { useAuthStore } from '#/store/auth.store'
 import { useWalletQuery } from '#/hooks/useWalletQuery'
 
 export function TopBar() {
   const { token, username, logout } = useAuthStore()
   const [loginOpen, setLoginOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const { data: wallet } = useWalletQuery()
   const [onlineCount, setOnlineCount] = useState(14728)
 
@@ -124,7 +126,7 @@ export function TopBar() {
               <DropdownMenuContent align="end" className="w-44 bg-popover border-glass-border text-text-body">
                 <DropdownMenuLabel className="text-text-hi font-mono text-xs">{displayName}</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-glass-border" />
-                <DropdownMenuItem className="focus:bg-glass hover:text-neon-cyan cursor-pointer text-sm">
+                <DropdownMenuItem onClick={() => setHistoryOpen(true)} className="focus:bg-glass hover:text-neon-cyan cursor-pointer text-sm">
                   Histórico
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-glass-border" />
@@ -141,6 +143,7 @@ export function TopBar() {
       </header>
 
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <BetHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </>
   )
 }

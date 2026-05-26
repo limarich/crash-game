@@ -23,6 +23,14 @@ export async function cashout(token: string) {
   return res.json() as Promise<BetResponse>
 }
 
+export async function getMyBets(token: string, page = 1, limit = 20) {
+  const res = await fetch(`${API_URL}/games/bets/me?page=${page}&limit=${limit}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error(await parseError(res))
+  return res.json() as Promise<BetResponse[]>
+}
+
 export async function getRoundHistory(page = 1, limit = 20) {
   const res = await fetch(`${API_URL}/games/rounds/history?page=${page}&limit=${limit}`)
   if (!res.ok) throw new Error(await parseError(res))
