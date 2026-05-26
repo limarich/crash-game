@@ -18,6 +18,22 @@ Aguarde todos os containers subirem. O Keycloak, Kong e o banco levam alguns seg
 | Username | `player`                |
 | Password | `player123`             |
 | Email    | `player@crash-game.dev` |
+| Saldo inicial | R$ 1.000,00 (creditado automaticamente pelo seeder) |
+
+### Seeder — saldo inicial do usuário de teste
+
+O `docker:up` inclui um container one-shot (`seeder`) que roda automaticamente após o Keycloak e o Wallet Service ficarem prontos. Nenhum passo manual é necessário.
+
+**O que faz, em ordem:**
+
+1. Faz login no Keycloak como `player` via OIDC password grant — obtém um Bearer token
+2. Cria a carteira do jogador via `POST /wallets` (idempotente — 409 é ignorado se a carteira já existe)
+3. Semeia R$1.000,00 de saldo inicial via `POST /wallets/admin/seed` (idempotente — sem efeito se o saldo já for maior que zero)
+4. Para automaticamente (`restart: "no"`)
+
+O script está em `docker/seeder/seed.sh`. O serviço é configurado no `docker-compose.yml` com `depends_on` em `keycloak` e `wallets`.
+
+> **Trade-off:** o endpoint `POST /wallets/admin/seed` é protegido por JWT mas não por role administrativa — qualquer usuário autenticado poderia chamá-lo. Em produção esse endpoint não existiria ou exigiria uma role de admin no Keycloak. Para o escopo do desafio é aceitável: o Keycloak já garante autenticação, e o endpoint é idempotente (sem efeito após o primeiro crédito).
 
 ### Serviços disponíveis
 
@@ -40,6 +56,9 @@ cd services/games   && bun test tests/unit
 # Testes E2E — requer docker:up
 cd services/wallets && bun test tests/e2e
 cd services/games   && bun test tests/e2e
+
+# Frontend
+cd frontend && bun test
 ```
 
 ### Testando manualmente via cURL
@@ -98,14 +117,17 @@ curl -s -X POST http://localhost:8000/games/bet/cashout \
 
 ```
 frontend (3000)
-    ↓ HTTP / WebSocket
-Kong API Gateway (8000)
-    ↓                  ↓
-game-service (4001)   wallet-service (4002)
-    ↓    ↕ RabbitMQ ↕     ↓
-PostgreSQL             PostgreSQL
-(database: games)      (database: wallets)
+    ├─── HTTP/REST ──────► Kong API Gateway (8000)
+    │                           ├──► game-service (4001)
+    │                           └──► wallet-service (4002)
+    └─── WebSocket (socket.io) ─────► game-service (4001)
+
+game-service   ↔ RabbitMQ ↔ wallet-service
+game-service   → PostgreSQL (database: games)
+wallet-service → PostgreSQL (database: wallets)
 ```
+
+O WebSocket conecta diretamente no `game-service` (porta 4001) sem passar pelo Kong. Kong tem suporte a WebSocket mas adicionaria complexidade de configuração desnecessária para o escopo do desafio. Em produção o WebSocket deveria passar pelo gateway para centralizar autenticação e rate limiting.
 
 ### Bounded contexts
 
@@ -286,6 +308,33 @@ function verifyChain(serverSeedN: string, serverSeedHashN1: string): boolean {
 }
 ```
 
+---
+
+## Frontend
+
+### Stack
+
+| Camada | Biblioteca |
+|--------|------------|
+| Framework | TanStack Start |
+| Roteamento | TanStack Router (file-based) |
+| Server state | TanStack Query |
+| Client state | Zustand |
+| WebSocket | socket.io-client |
+| UI | Tailwind CSS v4 + shadcn/ui |
+| Runtime | React 19 |
+
+### Componentes principais
+
+**CrashGraph** — curva exponencial animada em SVG com filtro de glow via SMIL, multiplicador central em display 7-segmentos, flash vermelho ao crash, overlay de radial gradient com cross-fade por fase e countdown de apostas com barra de progresso.
+
+**BettingPanel** — input validado com chips de valor rápido, botão BET durante a fase BETTING e botão CASH OUT durante RUNNING com payout potencial atualizado em tempo real. Auto cashout configurável com toggle. Bloqueia edição fora da fase de apostas.
+
+**CurrentBets** — lista atualizada via WebSocket com animação de entrada por linha.
+
+**RoundHistory** — últimos 20 crash points com código de cores (vermelho `< 2x`, âmbar `2x–10x`, verde `≥ 10x`) e animação de entrada para novos resultados.
+
+**TopBar** — saldo e username extraídos do JWT, histórico de apostas via modal, contador de online com variação aleatória.
 ---
 
 ## Decisões técnicas e trade-offs
