@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '#/lib/utils'
 import { VerifyModal, type RoundRecord } from './VerifyModal'
@@ -23,6 +23,8 @@ function pillStyle(crash: number) {
 export function RoundHistory() {
   const { phase, currentRound } = useGameStore()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [newestId, setNewestId] = useState<string | null>(null)
+  const prevFirstId = useRef<string | null>(null)
 
   const queryClient = useQueryClient()
 
@@ -37,6 +39,16 @@ export function RoundHistory() {
       queryClient.invalidateQueries({ queryKey: ['round-history'] })
     }
   }, [phase])
+
+  useEffect(() => {
+    const firstId = history[0]?.id ?? null
+    if (firstId && firstId !== prevFirstId.current) {
+      prevFirstId.current = firstId
+      setNewestId(firstId)
+      const id = setTimeout(() => setNewestId(null), 500)
+      return () => clearTimeout(id)
+    }
+  }, [history])
 
   const { data: verifyData, isFetching: verifying } = useQuery({
     queryKey: ['verify', selectedId],
@@ -91,6 +103,7 @@ export function RoundHistory() {
                   style.base,
                   isCurrent && style.active,
                   isLoading && 'opacity-50',
+                  r.id === newestId && 'animate-pill-enter',
                 )}
               >
                 {crash.toFixed(2)}x
