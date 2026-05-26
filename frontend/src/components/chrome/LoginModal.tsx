@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTitle } from '#/components/ui/dialog'
 import { useAuthStore } from '#/store/auth.store'
 
@@ -20,16 +21,22 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   async function handlePreset(u: typeof PRESET_USERS[0]) {
     try {
       await login(u.username, u.password)
+      toast.success(`Welcome, ${u.username}!`)
       onClose()
-    } catch { /* error shown via store */ }
+    } catch {
+      toast.error('Login failed. Check your credentials.')
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     try {
       await login(username, password)
+      toast.success(`Welcome, ${username}!`)
       onClose()
-    } catch { /* error shown via store */ }
+    } catch {
+      toast.error('Login failed. Check your credentials.')
+    }
   }
 
   function handleOpenChange(o: boolean) {

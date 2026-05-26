@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Switch } from '#/components/ui/switch'
 import { cn } from '#/lib/utils'
 import { useGameStore } from '#/store/game.store'
@@ -44,6 +45,10 @@ export function BettingPanel() {
     onSuccess: (bet) => {
       setMyBet({ ...bet, playerId: bet.playerId ?? username ?? '' })
       invalidateWallet()
+      toast.success('Bet placed!', { description: `R$ ${(Number(bet.amountInCents) / 100).toFixed(2)} locked in` })
+    },
+    onError: (err) => {
+      toast.error('Bet failed', { description: err.message })
     },
   })
 
@@ -51,6 +56,9 @@ export function BettingPanel() {
     mutationFn: () => cashout(token!),
     onSuccess: (bet) => {
       setMyBet({ ...bet, playerId: bet.playerId ?? username ?? '' })
+
+      const payout = bet.payoutInCents ? Number(bet.payoutInCents) / 100 : 0
+      const multiplier = bet.cashoutMultiplier ? Number(bet.cashoutMultiplier).toFixed(2) : '?'
 
       if (bet.payoutInCents) {
         queryClient.setQueryData<WalletResponse>(
@@ -61,8 +69,23 @@ export function BettingPanel() {
         )
       }
       setTimeout(invalidateWallet, 1500)
+      toast.success(`Cashed out at ${multiplier}x`, { description: `+R$ ${payout.toFixed(2)} credited` })
+    },
+    onError: (err) => {
+      toast.error('Cashout failed', { description: err.message })
     },
   })
+
+  // Bust notification when crash happens with an active bet
+  const prevPhaseRef = useRef(serverPhase)
+  useEffect(() => {
+    if (prevPhaseRef.current === serverPhase) return
+    if (serverPhase === 'CRASHED' && myBet?.status === 'LOST') {
+      const amount = myBet.amountInCents ? Number(myBet.amountInCents) / 100 : 0
+      toast.error('Busted!', { description: `-R$ ${amount.toFixed(2)}` })
+    }
+    prevPhaseRef.current = serverPhase
+  }, [serverPhase, myBet?.status, myBet?.amountInCents])
 
   // Auto cashout effect
   const cashoutMutateRef = useRef(cashoutMutation.mutate)

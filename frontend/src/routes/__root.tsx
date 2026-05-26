@@ -8,6 +8,8 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
+import { Toaster } from 'sonner'
+
 import appCss from '../styles.css?url'
 
 import type { QueryClient } from '@tanstack/react-query'
@@ -59,6 +61,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             },
             TanStackQueryDevtools,
           ]}
+        />
+        <Toaster
+          position="top-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: 'rgba(12, 14, 28, 0.97)',
+              border: '1px solid rgba(120, 130, 200, 0.22)',
+              color: '#c8cbe0',
+              fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+              fontSize: '12px',
+            },
+          }}
         />
         <Scripts />
       </body>
