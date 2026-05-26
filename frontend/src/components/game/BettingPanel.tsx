@@ -40,6 +40,14 @@ export function BettingPanel() {
   const [autoCashout, setAutoCashout] = useState(2.0)
   const [rawAutoInput, setRawAutoInput] = useState('2.00')
 
+  const [autoBetEnabled, setAutoBetEnabled] = useState(false)
+  const [autoBetMode, setAutoBetMode] = useState<'fixed' | 'martingale'>('fixed')
+  const [autoBetRounds, setAutoBetRounds] = useState(0)
+  const [autoBetRoundsLeft, setAutoBetRoundsLeft] = useState(0)
+  const [autoBetStopLoss, setAutoBetStopLoss] = useState(0)
+  const [autoBetStartBalance, setAutoBetStartBalance] = useState(0)
+  const [autoBetBaseBet, setAutoBetBaseBet] = useState(10)
+
   const betMutation = useMutation({
     mutationFn: (amountInCents: number) => placeBet(amountInCents, token!),
     onSuccess: (bet) => {
@@ -91,6 +99,11 @@ export function BettingPanel() {
   const cashoutMutateRef = useRef(cashoutMutation.mutate)
   cashoutMutateRef.current = cashoutMutation.mutate
 
+  const betMutateRef = useRef(betMutation.mutate)
+  betMutateRef.current = betMutation.mutate
+  const autoBetPhaseRef = useRef<UIPhase>('idle')
+  const prevBetStatusRef = useRef<string | null>(null)
+
   useEffect(() => {
     const betIsActive = !!myBet && myBet.status !== 'CASHED_OUT' && myBet.status !== 'LOST'
     if (
@@ -103,6 +116,52 @@ export function BettingPanel() {
       cashoutMutateRef.current()
     }
   }, [multiplier, autoCashoutEnabled, autoCashout, phase, myBet?.status, cashoutMutation.isPending])
+
+  // Auto bet fire on transition to betting phase
+  useEffect(() => {
+    const prev = autoBetPhaseRef.current
+    autoBetPhaseRef.current = phase
+
+    if (prev === 'betting' || phase !== 'betting') return
+    if (!autoBetEnabled || !!myBet || betMutation.isPending) return
+
+    if (autoBetRounds > 0 && autoBetRoundsLeft <= 0) {
+      setAutoBetEnabled(false)
+      toast.info('Auto bet completed', { description: `All ${autoBetRounds} rounds played` })
+      return
+    }
+
+    if (autoBetStopLoss > 0 && (autoBetStartBalance - balance) >= autoBetStopLoss) {
+      setAutoBetEnabled(false)
+      toast.warning('Auto bet stopped', { description: `Stop-loss of R$${autoBetStopLoss.toFixed(2)} reached` })
+      return
+    }
+
+    const effectiveBet = Math.min(betAmount, balance)
+    if (effectiveBet < MIN_BET) {
+      setAutoBetEnabled(false)
+      toast.warning('Auto bet stopped', { description: 'Insufficient balance' })
+      return
+    }
+    if (effectiveBet < betAmount) applyBet(effectiveBet)
+    betMutateRef.current(Math.round(effectiveBet * 100))
+    if (autoBetRounds > 0) setAutoBetRoundsLeft(r => r - 1)
+  }, [phase, autoBetEnabled, myBet, betMutation.isPending, autoBetRounds, autoBetRoundsLeft, autoBetStopLoss, autoBetStartBalance, balance, betAmount])
+
+  // Martingale adjust bet after each round result
+  useEffect(() => {
+    if (!autoBetEnabled || autoBetMode !== 'martingale') return
+    if (!myBet?.status || myBet.status === prevBetStatusRef.current) return
+
+    prevBetStatusRef.current = myBet.status
+
+    if (myBet.status === 'LOST') {
+      const doubled = Math.min(betAmount * 2, MAX_BET, Math.max(MIN_BET, balance))
+      applyBet(doubled)
+    } else if (myBet.status === 'CASHED_OUT') {
+      applyBet(Math.min(autoBetBaseBet, balance))
+    }
+  }, [myBet?.status, autoBetEnabled, autoBetMode, betAmount, autoBetBaseBet, balance])
 
   const loading = betMutation.isPending || cashoutMutation.isPending
   const actionError = betMutation.error?.message ?? cashoutMutation.error?.message ?? null
@@ -145,6 +204,15 @@ export function BettingPanel() {
     const clamped = Math.max(1.01, Math.round(autoCashout * 100) / 100)
     setAutoCashout(clamped)
     setRawAutoInput(clamped.toFixed(2))
+  }
+
+  function handleAutoBetToggle(enabled: boolean) {
+    setAutoBetEnabled(enabled)
+    if (enabled) {
+      setAutoBetStartBalance(balance)
+      setAutoBetRoundsLeft(autoBetRounds)
+      setAutoBetBaseBet(betAmount)
+    }
   }
 
   const insufficientFunds = betAmount > balance
@@ -333,6 +401,98 @@ export function BettingPanel() {
             </div>
             <Switch checked={autoCashoutEnabled} onCheckedChange={setAutoCashoutEnabled} aria-label="Toggle auto cashout" />
           </div>
+        </div>
+      </div>
+
+      {/* Auto bet card */}
+      <div className="card-glass">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-text-mid">Auto bet</span>
+          <div className="flex items-center gap-2">
+            <span className={cn('font-mono text-[10px] tracking-[0.14em] uppercase', autoBetEnabled ? 'text-neon-green' : 'text-text-dim')}>
+              {autoBetEnabled
+                ? autoBetRounds > 0 ? `${autoBetRoundsLeft} left` : 'On'
+                : 'Off'}
+            </span>
+            <Switch checked={autoBetEnabled} onCheckedChange={handleAutoBetToggle} aria-label="Toggle auto bet" />
+          </div>
+        </div>
+
+        <div className="px-4 py-3 flex flex-col gap-3">
+          {/* Mode selector */}
+          <div className="flex gap-1.5">
+            {(['fixed', 'martingale'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setAutoBetMode(m)}
+                disabled={autoBetEnabled}
+                className={cn(
+                  'flex-1 h-7 rounded-md border font-mono text-[11px] font-medium transition-colors duration-150 capitalize',
+                  autoBetEnabled && 'opacity-50 cursor-not-allowed',
+                  autoBetMode === m
+                    ? 'border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan'
+                    : 'border-border text-text-dim hover:border-border-strong hover:text-text-mid',
+                )}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+
+          {/* Config row */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] tracking-[0.18em] uppercase text-text-dim">Rounds (0=∞)</span>
+              <div className={cn(
+                'flex items-center rounded-md border px-2 h-8',
+                autoBetEnabled ? 'border-border bg-white/[0.01]' : 'border-border-strong bg-white/[0.03]',
+              )}>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={autoBetRounds}
+                  disabled={autoBetEnabled}
+                  onChange={(e) => setAutoBetRounds(Math.max(0, parseInt(e.target.value) || 0))}
+                  className={cn(
+                    'w-full bg-transparent font-mono text-[12px] font-medium text-right focus:outline-none',
+                    autoBetEnabled ? 'text-text-faint' : 'text-text-hi',
+                    '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] tracking-[0.18em] uppercase text-text-dim">Stop-loss R$ (0=off)</span>
+              <div className={cn(
+                'flex items-center gap-1 rounded-md border px-2 h-8',
+                autoBetEnabled ? 'border-border bg-white/[0.01]' : 'border-border-strong bg-white/[0.03]',
+              )}>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={autoBetStopLoss}
+                  disabled={autoBetEnabled}
+                  onChange={(e) => setAutoBetStopLoss(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className={cn(
+                    'w-full bg-transparent font-mono text-[12px] font-medium text-right focus:outline-none',
+                    autoBetEnabled ? 'text-text-faint' : 'text-text-hi',
+                    '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+
+          {autoBetEnabled && (
+            <p className="font-mono text-[10px] text-text-dim text-center tracking-[0.06em]">
+              {autoBetMode === 'martingale' ? 'Martingale' : 'Fixed'} · R${betAmount.toFixed(2)}/bet
+              {autoBetRounds > 0 && ` · ${autoBetRoundsLeft} rounds left`}
+              {autoBetStopLoss > 0 && ` · stop R$${autoBetStopLoss}`}
+            </p>
+          )}
         </div>
       </div>
 
