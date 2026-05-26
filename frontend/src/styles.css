@@ -262,3 +262,15 @@
     pointer-events: none;
   }
 }
+
+@keyframes crash-flash {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@layer utilities {
+  .animate-crash-flash {
+    animation: crash-flash 600ms ease-out forwards;
+  }
+}

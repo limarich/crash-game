@@ -36,9 +36,9 @@ export function CrashGraph() {
 
   const phase: GamePhase =
     serverPhase === 'BETTING' ? 'betting'
-    : serverPhase === 'RUNNING' ? 'running'
-    : serverPhase === 'CRASHED' ? 'crashed'
-    : 'betting'
+      : serverPhase === 'RUNNING' ? 'running'
+        : serverPhase === 'CRASHED' ? 'crashed'
+          : 'betting'
 
   const { path, areaPath, xEnd, yEnd } = useMemo(() => buildCurve(multiplier), [multiplier])
   const stroke = phase === 'crashed' ? '#ff3355' : '#00ff88'
@@ -48,11 +48,19 @@ export function CrashGraph() {
   const seedHash = serverSeedHash ?? ''
 
   const [now, setNow] = useState(() => Date.now())
+  const [flashing, setFlashing] = useState(false)
 
   useEffect(() => {
     if (phase !== 'betting') return
     const id = setInterval(() => setNow(Date.now()), 100)
     return () => clearInterval(id)
+  }, [phase])
+
+  useEffect(() => {
+    if (phase !== 'crashed') return
+    setFlashing(true)
+    const id = setTimeout(() => setFlashing(false), 600)
+    return () => clearTimeout(id)
   }, [phase])
 
   const bettingEndsMs = bettingEndsAt ? bettingEndsAt.getTime() : now + BETTING_PHASE_MS
@@ -73,6 +81,15 @@ export function CrashGraph() {
   return (
     <div className="card-glass flex flex-col min-h-[480px]">
       <div className="crash-stage relative flex-1 min-h-[380px] overflow-hidden rounded-lg" data-state={phase}>
+
+        {/* Crash flash overlay */}
+        <div
+          className={cn(
+            'absolute inset-0 z-20 pointer-events-none',
+            flashing ? 'animate-crash-flash' : 'opacity-0',
+          )}
+          style={{ background: 'radial-gradient(ellipse at 50% 40%, rgba(255,51,85,0.7) 0%, rgba(255,51,85,0.3) 50%, transparent 80%)' }}
+        />
 
         <div className="crash-grid absolute inset-0 pointer-events-none" />
 
