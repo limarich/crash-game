@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { cn } from '#/lib/utils'
 import { ScrollArea } from '#/components/ui/scroll-area'
 import { useGameStore, type BetInfo } from '#/store/game.store'
@@ -34,6 +35,25 @@ function shortName(playerId: string): string {
 export function BetsList() {
   const { bets, phase } = useGameStore()
   const { username } = useAuthStore()
+  const [newKeys, setNewKeys] = useState<Set<string>>(new Set())
+  const prevLengthRef = useRef(bets.length)
+
+  useEffect(() => {
+    const prevLen = prevLengthRef.current
+    if (bets.length <= prevLen) {
+      prevLengthRef.current = bets.length
+      return
+    }
+    const added = bets.slice(prevLen).map((b, i) => b.id ?? `${b.playerId}-${prevLen + i}`)
+    prevLengthRef.current = bets.length
+    setNewKeys((prev) => new Set([...prev, ...added]))
+    const id = setTimeout(() => setNewKeys((prev) => {
+      const next = new Set(prev)
+      added.forEach((k) => next.delete(k))
+      return next
+    }), 400)
+    return () => clearTimeout(id)
+  }, [bets])
 
   const totalWagered = bets.reduce((s, b) => s + Number(b.amountInCents) / 100, 0)
   const cashedBets = bets.filter((b) => b.status === 'CASHED_OUT' || b.cashoutMultiplier != null)
@@ -76,12 +96,14 @@ export function BetsList() {
               const status = getStatus(bet, phase)
               const isYou = username && bet.playerId === username
               const amountR = Number(bet.amountInCents) / 100
+              const betKey = bet.id ?? `${bet.playerId}-${i}`
               return (
                 <div
-                  key={bet.id ?? `${bet.playerId}-${i}`}
+                  key={betKey}
                   className={cn(
                     'grid gap-[10px] items-center px-[14px] py-[10px] border-b border-border [grid-template-columns:1.4fr_0.9fr_0.9fr]',
                     status === 'cashed' && 'bg-neon-green/[0.04]',
+                    newKeys.has(betKey) && 'animate-bet-enter',
                   )}
                 >
                   {/* Player */}
