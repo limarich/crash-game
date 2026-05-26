@@ -5,9 +5,11 @@ import { BetsList } from '#/components/game/BetsList'
 import { BettingPanel } from '#/components/game/BettingPanel'
 import { RoundHistory } from '#/components/game/RoundHistory'
 import { useGameSocket } from '#/hooks/useGameSocket'
+import { useSoundEffects } from '#/hooks/useSoundEffects'
 
 export function Home() {
     useGameSocket()
+    useSoundEffects()
 
     return (
         <>
