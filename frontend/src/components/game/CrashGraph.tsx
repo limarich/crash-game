@@ -82,6 +82,22 @@ export function CrashGraph() {
     <div className="card-glass flex flex-col min-h-[480px]">
       <div className="crash-stage relative flex-1 min-h-[380px] overflow-hidden rounded-lg" data-state={phase}>
 
+        {/* Phase background overlays  */}
+        <div
+          className="crash-stage-overlay absolute inset-0 z-[1]"
+          style={{
+            opacity: phase === 'running' ? 1 : 0,
+            background: 'radial-gradient(800px 400px at 50% 100%, rgba(0,255,136,0.09), transparent 70%)',
+          }}
+        />
+        <div
+          className="crash-stage-overlay absolute inset-0 z-[1]"
+          style={{
+            opacity: phase === 'crashed' ? 1 : 0,
+            background: 'radial-gradient(800px 500px at 50% 50%, rgba(255,51,85,0.22), transparent 70%), linear-gradient(180deg, rgba(40,5,15,0.5), rgba(20,0,8,0.75))',
+          }}
+        />
+
         {/* Crash flash overlay */}
         <div
           className={cn(
