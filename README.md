@@ -1,5 +1,10 @@
 # Crash Game — Jungle Gaming Challenge
 
+## Demonstração
+
+![Demonstração](https://github.com/limarich/crash-game/blob/46fa4a939704a26059755e7868f7ea56849a59e4/ezgif-3d6c64fbead52167.gif)
+![Demonstração Mobile](https://github.com/limarich/crash-game/blob/2be8233e7ae3d12bc49e1ae6911096febc1843c1/ezgif-389fa28348786aff.gif)
+
 ## Setup
 
 ```bash
