@@ -4,7 +4,7 @@
 
 ```bash
 git clone https://github.com/limarich/crash-game.git
-cd crash-game-challenge
+cd crash-game
 bun install
 cp services/games/.env.example services/games/.env && cp services/wallets/.env.example services/wallets/.env
 bun run docker:up

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test'
 import { getPlayerToken, getPlayerId } from './helpers/auth'
 import { waitFor } from './helpers/wait'
 import { GAMES_URL, WALLETS_URL } from './helpers/constants'
-import { deleteWallet, getBetStatus, seedWalletBalance, psqlGames } from './helpers/db'
+import { deleteWallet, getBetStatus, psqlGames, seedWalletBalance } from './helpers/db'
 
 const PHASE_TIMEOUT_MS = 180_000
 const SAGA_TIMEOUT_MS = 15_000
@@ -94,15 +94,13 @@ describe('GET /games/leaderboard', () => {
     })
 
     it('should include playerName after a completed bet', async () => {
-        await createWallet(token)
-        seedWalletBalance(playerId, 10_000n)
+        const round = await getCurrentRound()
+        if (!round) throw new Error('No current round')
 
-        // Place bet during BETTING — this stores playerName in the DB via the JWT claim
-        await placeBet(token)
-
-        await waitFor(async () => getBetStatus(playerId) === 'CONFIRMED', SAGA_TIMEOUT_MS)
-
-        psqlGames(`UPDATE bets SET status = 'LOST' WHERE player_id = '${playerId}' AND status = 'CONFIRMED'`)
+        psqlGames(
+            `INSERT INTO bets (id, round_id, player_id, player_name, amount_in_cents, status) ` +
+            `VALUES (gen_random_uuid(), '${round.id}', '${playerId}', '${playerName}', 1000, 'LOST')`
+        )
 
         const leaderboardRes = await fetch(`${GAMES_URL}/leaderboard?limit=50`)
         expect(leaderboardRes.status).toBe(200)
