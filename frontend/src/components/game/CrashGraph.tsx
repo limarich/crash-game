@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { cn } from '#/lib/utils'
 import { SegDisplay } from './SegDisplay'
 import { useGameStore } from '#/store/game.store'
@@ -47,7 +47,14 @@ export function CrashGraph() {
   const roundId = currentRound?.nonce ?? '—'
   const seedHash = serverSeedHash ?? ''
 
-  const now = Date.now()
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (phase !== 'betting') return
+    const id = setInterval(() => setNow(Date.now()), 100)
+    return () => clearInterval(id)
+  }, [phase])
+
   const bettingEndsMs = bettingEndsAt ? bettingEndsAt.getTime() : now + BETTING_PHASE_MS
   const bettingSecondsLeft = Math.max(0, (bettingEndsMs - now) / 1000)
   const bettingProgress = Math.max(0, Math.min(1, 1 - bettingSecondsLeft / (BETTING_PHASE_MS / 1000)))
