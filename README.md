@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/SEU_USER/crash-game-challenge
+git clone https://github.com/limarich/crash-game.git
 cd crash-game-challenge
 bun install
 bun run docker:up
