@@ -45,6 +45,74 @@ O script está em `docker/seeder/seed.sh`. O serviço é configurado no `docker-
 | Keycloak Admin | http://localhost:8080  |
 | RabbitMQ UI    | http://localhost:15672 |
 
+### Documentação da API (Swagger)
+
+Após subir o stack, a UI do Swagger está disponível em:
+
+| Serviço        | URL Swagger                                  |
+|----------------|----------------------------------------------|
+| Game Service   | http://localhost:4001/games/api              |
+| Wallet Service | http://localhost:4002/wallets/api            |
+
+Todos os endpoints estão documentados com exemplos de request/response, schemas e descrições de campos.
+
+---
+
+## Extras implementados
+
+### Rate Limiting via Kong
+
+O API Gateway aplica limites de requisições por IP em dois níveis:
+
+| Escopo            | Rota                    | Limite     |
+|-------------------|-------------------------|------------|
+| Service (padrão)  | Todos os endpoints      | 120 req/min |
+| Rota específica   | `POST /games/bet`       | 20 req/min  |
+| Rota específica   | `POST /games/bet/cashout` | 20 req/min |
+| Rota específica   | `POST /wallets`         | 10 req/min  |
+
+Kong retorna `429 Too Many Requests` ao exceder o limite, com headers `X-RateLimit-Limit-Minute` e `X-RateLimit-Remaining-Minute` em todas as respostas.
+
+Configuração em `docker/kong/kong.yml`.
+
+### Auto Bet (Estratégia Martingale)
+
+O painel de apostas oferece modo automático com suporte à estratégia Martingale:
+
+- **Auto Cashout:** define um multiplicador-alvo e o sistema efetua o cashout automaticamente quando o multiplicador atingir o valor configurado.
+- **Auto Bet:** repete apostas automaticamente a cada rodada. Em caso de derrota, dobra o valor da próxima aposta (Martingale). Em caso de vitória, retorna ao valor inicial.
+- As configurações ficam persistidas durante a sessão. O modo automático pode ser pausado a qualquer momento.
+
+### Sonoridade e Animações
+
+**Sons:**
+- Tick contínuo durante a fase RUNNING (frequência aumenta com o multiplicador)
+- Som de crash ao explodir a rodada
+- Som de sucesso ao realizar cashout
+- Todos os sons são gerados via Web Audio API (sem assets externos)
+
+**Animações:**
+- Curva do gráfico animada com filtro de glow (SMIL)
+- Display de multiplicador estilo 7 segmentos
+- Flash vermelho ao crash com efeito de tremer
+- Animação de entrada por linha no histórico de apostas
+- Radial gradient com cross-fade por fase (BETTING / RUNNING / CRASHED)
+- Countdown com barra de progresso durante a fase BETTING
+
+### Seed Determinística para E2E
+
+Um helper de seeding (`services/games/tests/e2e/helpers/seeder.ts`) permite que testes E2E operem sobre dados históricos com crash points conhecidos e reproduzíveis:
+
+```typescript
+// Popula 5 rodadas CRASHED com seeds pré-calculados e redefine o saldo da carteira
+const roundIds = seedE2EState(playerId)
+
+// Crash points garantidos: 1.00x, ~1.50x, ~2.00x, ~3.00x, ~5.00x
+const { crash100, crash200, crash500 } = KNOWN_SEEDS
+```
+
+Os seeds são calculados por brute-force usando a mesma fórmula HMAC-SHA256 do `ProvablyFairService`. O script standalone `bun scripts/seed-e2e.ts <player-uuid>` popula o banco manualmente.
+
 ---
 
 ## Como rodar os testes
@@ -329,7 +397,7 @@ function verifyChain(serverSeedN: string, serverSeedHashN1: string): boolean {
 
 **CrashGraph** — curva exponencial animada em SVG com filtro de glow via SMIL, multiplicador central em display 7-segmentos, flash vermelho ao crash, overlay de radial gradient com cross-fade por fase e countdown de apostas com barra de progresso.
 
-**BettingPanel** — input validado com chips de valor rápido, botão BET durante a fase BETTING e botão CASH OUT durante RUNNING com payout potencial atualizado em tempo real. Auto cashout configurável com toggle. Bloqueia edição fora da fase de apostas.
+**BettingPanel** — input validado com chips de valor rápido, botão BET durante a fase BETTING e botão CASH OUT durante RUNNING com payout potencial atualizado em tempo real. Auto cashout configurável (trigger automático ao atingir um multiplicador-alvo). Auto bet com estratégia Martingale (dobra aposta na derrota, retorna ao valor inicial na vitória). Bloqueia edição fora da fase de apostas.
 
 **CurrentBets** — lista atualizada via WebSocket com animação de entrada por linha.
 
@@ -364,9 +432,11 @@ O `AmqpConnection` do `@golevelup/nestjs-rabbitmq` precisa ser registrado antes 
 
 O ciclo de rodadas inicia automaticamente quando o serviço sobe, sem endpoint manual. Na inicialização, o serviço verifica se há uma rodada `RUNNING` órfã no banco (causada por restart abrupto) e continua de onde parou usando o `startedAt` persistido — o multiplicador é recalculado corretamente a partir do tempo decorrido real.
 
-### Kong: `strip_path: false`
+### Kong: `strip_path: false` e rate limiting por rota
 
 Os controllers NestJS usam o prefixo completo (`@Controller('games')`, `@Controller('wallets')`). O Kong é configurado com `strip_path: false` para repassar o path inteiro ao serviço de destino, mantendo a rota consistente tanto via Kong quanto via acesso direto na porta do serviço.
+
+O rate limiting usa `policy: local` (por instância Kong) e `limit_by: ip`. As rotas de escrita (`POST /games/bet`, `POST /games/bet/cashout`, `POST /wallets`) têm limites mais restritivos aplicados via plugins de rota, que sobrescrevem o plugin de serviço. Os paths de rota usam prefixo `~` para regex no Kong 3.x (ex: `~/games/bet$`), necessário para distinguir `/games/bet` de `/games/bet/cashout`.
 
 ### `clientSeed` gerado pelo servidor
 
