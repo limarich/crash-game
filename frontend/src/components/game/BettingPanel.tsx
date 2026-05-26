@@ -1,14 +1,14 @@
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState, useEffect, useRef } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Switch } from '#/components/ui/switch'
 import { cn } from '#/lib/utils'
 import { useGameStore } from '#/store/game.store'
 import { useAuthStore } from '#/store/auth.store'
 import { placeBet, cashout } from '#/lib/api'
-import { useWalletQuery, useInvalidateWallet } from '#/hooks/useWalletQuery'
+import { useWalletQuery, useInvalidateWallet, walletKeys } from '#/hooks/useWalletQuery'
+import type { WalletResponse } from '#/lib/api/types'
 import type { GamePhase as ServerPhase } from '#/store/game.store'
 
-// Component-level phase mapped from server phase
 type UIPhase = 'betting' | 'running' | 'crashed' | 'idle'
 
 function toUIPhase(p: ServerPhase): UIPhase {
@@ -27,6 +27,7 @@ export function BettingPanel() {
   const { token, username } = useAuthStore()
   const { data: wallet } = useWalletQuery()
   const invalidateWallet = useInvalidateWallet()
+  const queryClient = useQueryClient()
 
   const phase = toUIPhase(serverPhase)
   const balance = wallet ? Number(wallet.balanceInCents) / 100 : 0
@@ -48,13 +49,43 @@ export function BettingPanel() {
 
   const cashoutMutation = useMutation({
     mutationFn: () => cashout(token!),
-    onSuccess: () => invalidateWallet(),
+    onSuccess: (bet) => {
+      setMyBet({ ...bet, playerId: bet.playerId ?? username ?? '' })
+
+      if (bet.payoutInCents) {
+        queryClient.setQueryData<WalletResponse>(
+          walletKeys.me(token ?? ''),
+          (old) => old
+            ? { ...old, balanceInCents: (BigInt(old.balanceInCents) + BigInt(bet.payoutInCents!)).toString() }
+            : old,
+        )
+      }
+      setTimeout(invalidateWallet, 1500)
+    },
   })
+
+  // Auto cashout effect
+  const cashoutMutateRef = useRef(cashoutMutation.mutate)
+  cashoutMutateRef.current = cashoutMutation.mutate
+
+  useEffect(() => {
+    const betIsActive = !!myBet && myBet.status !== 'CASHED_OUT' && myBet.status !== 'LOST'
+    if (
+      autoCashoutEnabled &&
+      phase === 'running' &&
+      betIsActive &&
+      multiplier >= autoCashout &&
+      !cashoutMutation.isPending
+    ) {
+      cashoutMutateRef.current()
+    }
+  }, [multiplier, autoCashoutEnabled, autoCashout, phase, myBet?.status, cashoutMutation.isPending])
 
   const loading = betMutation.isPending || cashoutMutation.isPending
   const actionError = betMutation.error?.message ?? cashoutMutation.error?.message ?? null
 
   const hasBet = !!myBet
+  const isCashedOut = myBet?.status === 'CASHED_OUT'
   const potentialPayout = betAmount * multiplier
   const autoPayout = betAmount * autoCashout
   const isLocked = phase !== 'betting'
@@ -93,8 +124,9 @@ export function BettingPanel() {
     setRawAutoInput(clamped.toFixed(2))
   }
 
-  const canBet = phase === 'betting' && !hasBet && !!token && !loading && !inputError
-  const canCashout = phase === 'running' && hasBet && !!token && !loading
+  const insufficientFunds = betAmount > balance
+  const canBet = phase === 'betting' && !hasBet && !!token && !loading && !inputError && !insufficientFunds
+  const canCashout = phase === 'running' && hasBet && !isCashedOut && !!token && !loading
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -187,6 +219,9 @@ export function BettingPanel() {
 
           {inputError && (
             <p className="font-mono text-[10px] text-neon-red tracking-[0.06em]">Min R$1 · Max R$1.000</p>
+          )}
+          {!inputError && insufficientFunds && token && (
+            <p className="font-mono text-[10px] text-neon-red tracking-[0.06em]">Saldo insuficiente</p>
           )}
 
           {/* Quick chips */}
