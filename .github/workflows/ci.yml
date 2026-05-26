@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-games:
+    name: Unit tests — games
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: services/games
+        run: bun install
+
+      - name: Generate Prisma client
+        working-directory: services/games
+        run: bunx prisma generate
+        env:
+          DATABASE_URL: postgresql://admin:admin@localhost:5432/games
+
+      - name: Run unit tests
+        working-directory: services/games
+        run: bun run test
+
+  test-wallets:
+    name: Unit tests — wallets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: services/wallets
+        run: bun install
+
+      - name: Generate Prisma client
+        working-directory: services/wallets
+        run: bunx prisma generate
+        env:
+          DATABASE_URL: postgresql://admin:admin@localhost:5432/wallets
+
+      - name: Run unit tests
+        working-directory: services/wallets
+        run: bun run test
