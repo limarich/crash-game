@@ -43,6 +43,7 @@ export class PlaceBetUseCase {
                 id: randomUUID(),
                 roundId: round.id,
                 playerId: data.playerId,
+                playerName: data.playerName,
                 amountInCents: BigInt(data.amountInCents),
                 createdAt: new Date(),
             })

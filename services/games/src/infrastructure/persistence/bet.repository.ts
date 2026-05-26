@@ -8,6 +8,7 @@ interface BetRecord {
     id: string
     round_id: string
     player_id: string
+    player_name: string
     amount_in_cents: string
     status: string
     created_at: Date
@@ -67,6 +68,7 @@ export class BetRepository implements IBetRepository {
                 id: record.id,
                 roundId: record.round_id,
                 playerId: record.player_id,
+                playerName: record.player_name,
                 amountInCents: BigInt(record.amount_in_cents),
                 status: record.status as DomainBetStatus,
                 createdAt: record.created_at,
@@ -87,6 +89,25 @@ export class BetRepository implements IBetRepository {
         return records.map(record => this.toDomain(record))
     }
 
+    async findLeaderboard(limit: number) {
+        const rows = await this.prismaService.$queryRaw<{ player_id: string; player_name: string; net_profit_in_cents: bigint }[]>`
+            SELECT
+                player_id,
+                MAX(player_name) AS player_name,
+                COALESCE(SUM(payout_in_cents), 0) - SUM(amount_in_cents) AS net_profit_in_cents
+            FROM bets
+            WHERE status IN ('CASHED_OUT', 'LOST')
+            GROUP BY player_id
+            ORDER BY net_profit_in_cents DESC
+            LIMIT ${limit}
+        `
+        return rows.map(r => ({
+            playerId: r.player_id,
+            playerName: r.player_name,
+            netProfitInCents: BigInt(r.net_profit_in_cents),
+        }))
+    }
+
     async save(bet: Bet) {
         await this.prismaService.bet.upsert({
             where: { id: bet.id },
@@ -94,6 +115,7 @@ export class BetRepository implements IBetRepository {
                 id: bet.id,
                 roundId: bet.roundId,
                 playerId: bet.playerId,
+                playerName: bet.playerName,
                 amountInCents: bet.amountInCents,
                 status: bet.getRawStatus(),
                 createdAt: bet.createdAt,
@@ -113,6 +135,7 @@ export class BetRepository implements IBetRepository {
             id: record.id,
             roundId: record.roundId,
             playerId: record.playerId,
+            playerName: record.playerName,
             amountInCents: record.amountInCents,
             status: record.status as DomainBetStatus,
             createdAt: record.createdAt,

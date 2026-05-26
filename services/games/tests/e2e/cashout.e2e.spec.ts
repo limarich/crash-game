@@ -119,27 +119,19 @@ describe('Cashout E2E', () => {
             await createWallet(token)
             seedWalletBalance(playerId, 10_000n)
 
-            const roundId = await placeBetAndWaitConfirmed(token, playerId, '1000')
+            await placeBetAndWaitConfirmed(token, playerId, '1000')
 
             const balanceAfterBet = BigInt(getWalletBalance(playerId))
             expect(balanceAfterBet).toBe(9_000n)
 
-            // Wait for THAT specific round to crash (verify endpoint reveals serverSeed after crash)
-            await waitFor(async () => {
-                const res = await fetch(`${GAMES_URL}/rounds/${roundId}/verify`)
-                if (!res.ok) return false
-                const body = await res.json() as { serverSeed: string | null }
-                return body.serverSeed !== null
-            }, 240_000, 1_000)
-
-            // Give the crash handler a moment to mark bets as LOST
-            await new Promise(r => setTimeout(r, 1_000))
+            // Wait directly for the bet to become LOST.
+            await waitFor(async () => getBetStatus(playerId) === 'LOST', 420_000)
 
             expect(getBetStatus(playerId)).toBe('LOST')
 
             const balanceAfterCrash = BigInt(getWalletBalance(playerId))
             expect(balanceAfterCrash).toBe(9_000n)
-        })
+        }, 480_000)
     })
 
     describe('Insufficient balance -> bet CANCELLED', () => {

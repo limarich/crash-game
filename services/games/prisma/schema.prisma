@@ -28,6 +28,7 @@ model Bet {
   id                String    @id @default(uuid())
   roundId           String    @map("round_id")
   playerId          String    @map("player_id")
+  playerName        String    @map("player_name")
   amountInCents     BigInt    @map("amount_in_cents")
   createdAt         DateTime  @default(now()) @map("created_at")
   status            BetStatus @default(PENDING)

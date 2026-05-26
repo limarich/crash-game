@@ -24,6 +24,7 @@ import type { IRoundRepository } from '../../domain/round/round.interface'
 import type { IBetRepository } from '../../domain/bet/bet.interface'
 import { VerifyResponseDto } from '../dtos/verify-response.dto'
 import { PlaceBetDto } from '../dtos/place-bet.dto'
+import { LeaderboardEntryDto } from '../dtos/leaderboard-entry.dto'
 
 @ApiTags('games')
 @Controller('games')
@@ -151,6 +152,17 @@ export class GamesController {
         return bets.map(b => BetResponseDto.from(b))
     }
 
+    @Get('leaderboard')
+    @ApiOperation({ summary: 'Top jogadores por lucro líquido' })
+    @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Máximo de entradas (max 50)' })
+    @ApiResponse({ status: 200, type: [LeaderboardEntryDto] })
+    async getLeaderboard(@Query('limit') limit = '10') {
+        const entries = await this.betRepository.findLeaderboard(
+            Math.min(Math.max(1, parseInt(limit, 10)), 50),
+        )
+        return entries.map(LeaderboardEntryDto.from)
+    }
+
     @Post('bet')
     @UseGuards(JwtAuthGuard)
     @ApiOAuth2([], 'keycloak')
@@ -166,6 +178,7 @@ export class GamesController {
     ) {
         const bet = await this.placeBetUseCase.execute({
             playerId: req.user.sub,
+            playerName: req.user.username,
             amountInCents: body.amountInCents,
         })
         return BetResponseDto.from(bet)

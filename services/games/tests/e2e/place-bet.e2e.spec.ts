@@ -69,7 +69,7 @@ describe('Place Bet E2E - validation errors', () => {
     })
 
     it('should return 422 when betting during RUNNING phase', async () => {
-        await waitForPhase('RUNNING', 20_000)
+        await waitForPhase('RUNNING')
         const res = await placeBet(token, '1000')
         expect(res.status).toBe(422)
     })

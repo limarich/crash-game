@@ -9,4 +9,6 @@ export interface IBetRepository {
 
     // to avoid race condition
     findByPlayerAndRoundWithLock(playerId: string, roundId: string): Promise<Bet | null>
+
+    findLeaderboard(limit: number): Promise<{ playerId: string; playerName: string; netProfitInCents: bigint }[]>
 }

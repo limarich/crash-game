@@ -10,6 +10,7 @@ export class Bet {
     readonly id: string
     readonly roundId: string
     readonly playerId: string
+    readonly playerName: string
     readonly amountInCents: bigint
     readonly createdAt: Date
     private status: BetStatus
@@ -22,6 +23,7 @@ export class Bet {
         id: string
         roundId: string
         playerId: string
+        playerName: string
         amountInCents: bigint
         createdAt: Date
         status?: BetStatus
@@ -37,6 +39,7 @@ export class Bet {
         this.id = params.id
         this.roundId = params.roundId
         this.playerId = params.playerId
+        this.playerName = params.playerName
         this.amountInCents = params.amountInCents
         this.createdAt = params.createdAt
         this.status = params.status ?? 'PENDING'

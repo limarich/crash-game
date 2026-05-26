@@ -1,5 +1,6 @@
 export interface PlaceBetInput {
     playerId: string
+    playerName: string
     amountInCents: string
 }
 
