@@ -68,6 +68,8 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
                 setTimeout(() => this.runRound(), remaining)
                 return
             }
+
+            this.nonce = await this.roundRepository.findLastNonce()
             await this.startBettingPhase()
         } catch (error) {
             console.error('[GameEngine] Failed to start round:', error)

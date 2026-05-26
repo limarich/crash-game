@@ -44,6 +44,14 @@ export class RoundRepository implements IRoundRepository {
 
         return this.toDomain(record)
     }
+    async findLastNonce() {
+        const record = await this.prismaService.round.findFirst({
+            orderBy: { nonce: 'desc' },
+            select: { nonce: true },
+        })
+        return record?.nonce ?? 0
+    }
+
     async findHistory(page: number, limit: number) {
         const records = await this.prismaService.round.findMany({
             where: { status: 'CRASHED' },
