@@ -1,4 +1,4 @@
-import type { BetResponse, RoundResponse, VerifyResponse } from './types'
+import type { BetResponse, LeaderboardEntry, RoundResponse, VerifyResponse } from './types'
 import { API_URL, parseError } from './index'
 
 export async function placeBet(amountInCents: number, token: string) {
@@ -41,4 +41,10 @@ export async function verifyRound(roundId: string) {
   const res = await fetch(`${API_URL}/games/rounds/${roundId}/verify`)
   if (!res.ok) throw new Error(await parseError(res))
   return res.json() as Promise<VerifyResponse>
+}
+
+export async function getLeaderboard(limit = 10) {
+  const res = await fetch(`${API_URL}/games/leaderboard?limit=${limit}`)
+  if (!res.ok) throw new Error(await parseError(res))
+  return res.json() as Promise<LeaderboardEntry[]>
 }

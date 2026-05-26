@@ -5,6 +5,7 @@ import { CrashGraph } from '#/components/game/CrashGraph'
 import { BetsList } from '#/components/game/BetsList'
 import { BettingPanel } from '#/components/game/BettingPanel'
 import { RoundHistory } from '#/components/game/RoundHistory'
+import { Leaderboard } from '#/components/game/Leaderboard'
 import { useGameSocket } from '#/hooks/useGameSocket'
 import { useSoundEffects } from '#/hooks/useSoundEffects'
 
@@ -32,7 +33,10 @@ export function Home() {
                         <RoundHistory />
                     </div>
 
-                    <BetsList />
+                    <div className="flex flex-col gap-3 min-w-0">
+                        <BetsList />
+                        <Leaderboard />
+                    </div>
                 </main>
             </div>
 

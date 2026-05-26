@@ -47,6 +47,12 @@ export interface VerifyResponse {
   chain: VerifyChain | null
 }
 
+export interface LeaderboardEntry {
+  playerId: string
+  playerName: string
+  netProfitInCents: string
+}
+
 export interface WalletResponse {
   id: string
   playerId: string
