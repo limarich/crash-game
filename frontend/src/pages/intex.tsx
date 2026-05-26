@@ -1,5 +1,6 @@
 import { Background } from '#/components/chrome/Background'
 import { TopBar } from '#/components/chrome/TopBar'
+import { LoginBanner } from '#/components/chrome/LoginBanner'
 import { CrashGraph } from '#/components/game/CrashGraph'
 import { BetsList } from '#/components/game/BetsList'
 import { BettingPanel } from '#/components/game/BettingPanel'
@@ -34,6 +35,8 @@ export function Home() {
                     <BetsList />
                 </main>
             </div>
+
+            <LoginBanner />
         </>
     )
 }

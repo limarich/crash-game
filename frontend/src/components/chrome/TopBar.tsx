@@ -17,8 +17,7 @@ import { useAuthStore } from '#/store/auth.store'
 import { useWalletQuery } from '#/hooks/useWalletQuery'
 
 export function TopBar() {
-  const { token, username, logout } = useAuthStore()
-  const [loginOpen, setLoginOpen] = useState(false)
+  const { token, username, logout, loginModalOpen, openLoginModal, closeLoginModal } = useAuthStore()
   const [historyOpen, setHistoryOpen] = useState(false)
   const { data: wallet } = useWalletQuery()
   const [onlineCount, setOnlineCount] = useState(14728)
@@ -92,7 +91,7 @@ export function TopBar() {
 
           {!isLoggedIn ? (
             <button
-              onClick={() => setLoginOpen(true)}
+              onClick={openLoginModal}
               className="flex items-center gap-2 px-4 py-1.5 rounded-pill border border-neon-green/40 bg-neon-green/8 font-mono text-[12px] font-semibold text-neon-green tracking-[0.08em] hover:bg-neon-green/14 hover:border-neon-green/60 transition-colors duration-150"
             >
               Sign in
@@ -142,7 +141,7 @@ export function TopBar() {
         </div>
       </header>
 
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal open={loginModalOpen} onClose={closeLoginModal} />
       <BetHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </>
   )

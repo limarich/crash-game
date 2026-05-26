@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTitle } from '#/components/ui/dialog'
 import { useAuthStore } from '#/store/auth.store'
@@ -85,8 +86,11 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                     <p className="font-mono text-[11px] text-text-dim mt-0.5">Test account</p>
                   </div>
 
-                  <span className="font-mono text-[11px] text-text-faint group-hover:text-neon-green transition-colors duration-150 shrink-0">
-                    {loading ? '…' : '→'}
+                  <span className="text-text-faint group-hover:text-neon-green transition-colors duration-150 shrink-0">
+                    {loading
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <span className="font-mono text-[11px]">→</span>
+                    }
                   </span>
                 </button>
               ))}

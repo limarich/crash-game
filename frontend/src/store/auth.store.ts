@@ -8,11 +8,14 @@ interface AuthState {
   balanceInCents: bigint
   loading: boolean
   error: string | null
+  loginModalOpen: boolean
 
   login: (username: string, password: string) => Promise<void>
   logout: () => void
   refreshBalance: () => Promise<void>
   setBalance: (cents: bigint) => void
+  openLoginModal: () => void
+  closeLoginModal: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       balanceInCents: 0n,
       loading: false,
       error: null,
+      loginModalOpen: false,
 
       login: async (username, password) => {
         set({ loading: true, error: null })
@@ -39,6 +43,9 @@ export const useAuthStore = create<AuthState>()(
           throw err
         }
       },
+
+      openLoginModal: () => set({ loginModalOpen: true }),
+      closeLoginModal: () => set({ loginModalOpen: false }),
 
       logout: () => set({ token: null, username: null, balanceInCents: 0n, error: null }),
 
