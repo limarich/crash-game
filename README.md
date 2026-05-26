@@ -9,7 +9,7 @@ bun install
 bun run docker:up
 ```
 
-Aguarde todos os containers subirem. O Keycloak, Kong e o banco levam alguns segundos para ficar prontos — o `docker:up` aguarda os healthchecks antes de subir os serviços de aplicação.
+Aguarde todos os containers subirem. O Keycloak, Kong e o banco levam alguns segundos para ficar prontos. O `docker:up` aguarda os healthchecks antes de subir os serviços de aplicação.
 
 ### Usuário de teste
 
@@ -26,14 +26,14 @@ O `docker:up` inclui um container one-shot (`seeder`) que roda automaticamente a
 
 **O que faz, em ordem:**
 
-1. Faz login no Keycloak como `player` via OIDC password grant — obtém um Bearer token
-2. Cria a carteira do jogador via `POST /wallets` (idempotente — 409 é ignorado se a carteira já existe)
-3. Semeia R$1.000,00 de saldo inicial via `POST /wallets/admin/seed` (idempotente — sem efeito se o saldo já for maior que zero)
+1. Faz login no Keycloak como `player` via OIDC password grant para obter um Bearer token
+2. Cria a carteira do jogador via `POST /wallets` (ignora se a carteira já existe)
+3. Semeia R$1.000,00 de saldo inicial via `POST /wallets/admin/seed` (sem efeito se o saldo já for maior que zero)
 4. Para automaticamente (`restart: "no"`)
 
 O script está em `docker/seeder/seed.sh`. O serviço é configurado no `docker-compose.yml` com `depends_on` em `keycloak` e `wallets`.
 
-> **Trade-off:** o endpoint `POST /wallets/admin/seed` é protegido por JWT mas não por role administrativa — qualquer usuário autenticado poderia chamá-lo. Em produção esse endpoint não existiria ou exigiria uma role de admin no Keycloak. Para o escopo do desafio é aceitável: o Keycloak já garante autenticação, e o endpoint é idempotente (sem efeito após o primeiro crédito).
+> **Trade-off:** o endpoint `POST /wallets/admin/seed` é protegido por JWT mas não por role administrativa, ou seja, qualquer usuário autenticado poderia chamá-lo. Em produção esse endpoint não existiria ou exigiria uma role de admin no Keycloak.
 
 ### Serviços disponíveis
 
@@ -198,9 +198,9 @@ multiplier = Math.pow(1.0024, elapsedMs / 100)
 // atinge ~2x em ~30s, ~4x em ~60s
 ```
 
-A base `1.0024` representa crescimento de 0,24% a cada tick de 100ms — crescimento composto que produz uma curva exponencial suave. O valor foi escolhido para equilibrar tensão e jogabilidade: lento o suficiente para o jogador tomar decisões, rápido o suficiente para criar urgência.
+A base `1.0024` representa crescimento de 0,24% a cada tick de 100ms (crescimento composto que produz uma curva exponencial suave). O valor foi escolhido para equilibrar tensão e jogabilidade: lento o suficiente para o jogador tomar decisões, rápido o suficiente para criar urgência.
 
-> **Trade-off:** a fórmula é independente do `crashPoint` — o multiplicador continua subindo até o `GameEngineService` detectar que o limite foi atingido e executar o crash. O intervalo entre a detecção e a execução (latência do loop de 100ms) pode causar um overshoot de até um tick.
+> **Trade-off:** a fórmula é independente do `crashPoint`, o multiplicador continua subindo até o `GameEngineService` detectar que o limite foi atingido e executar o crash. O intervalo entre a detecção e a execução (latência do loop de 100ms) pode causar um overshoot de até um tick.
 
 ### Bet — state machine
 
@@ -282,7 +282,7 @@ Retorna `serverSeed` apenas se `status === 'CRASHED'`. O jogador pode usar qualq
 
 ### Hash chain
 
-Cada `serverSeed` é derivado do anterior via SHA256, formando uma cadeia imutável. Se o servidor adulterar o seed de qualquer rodada, o hash publicado antes dela não vai bater — e as rodadas seguintes também ficam inválidas, porque dependem do seed adulterado.
+Cada `serverSeed` é derivado do anterior via SHA256, formando uma cadeia imutável. Se o servidor adulterar o seed de qualquer rodada, o hash publicado antes dela não vai bater e as rodadas seguintes também ficam inválidas, porque dependem do seed adulterado.
 
 **Derivação entre rodadas:**
 
