@@ -8,7 +8,7 @@ export async function placeBet(amountInCents: number, token: string) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ amountInCents }),
+    body: JSON.stringify({ amountInCents: String(amountInCents) }),
   })
   if (!res.ok) throw new Error(await parseError(res))
   return res.json() as Promise<BetResponse>
