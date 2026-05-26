@@ -246,7 +246,7 @@ export function CrashGraph() {
 
         {/* Seed hash */}
         {phase === 'betting' && seedHash && (
-          <div className="absolute bottom-4 left-4 right-4 z-[4] flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-black/45 backdrop-blur-sm">
+          <div className="animate-seed-enter absolute bottom-4 left-4 right-4 z-[4] flex items-center gap-3 px-3 py-2 rounded-md border border-border bg-black/45 backdrop-blur-sm">
             <span className="font-mono text-[9px] tracking-[0.22em] uppercase text-text-dim shrink-0">
               Server seed hash
             </span>
