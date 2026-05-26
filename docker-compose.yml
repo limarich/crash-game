@@ -139,7 +139,29 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
-  # Frontend (placeholder — candidate implements)
+  # Seeder (one-shot): login → create wallet → seed R$ 1.000 initial balance
+  # ---------------------------------------------------------------------------
+  seeder:
+    image: alpine/curl:latest
+    volumes:
+      - ./docker/seeder/seed.sh:/seed.sh:ro
+    command: sh /seed.sh
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      WALLETS_URL: http://wallets:4002
+      KEYCLOAK_REALM: crash-game
+      KEYCLOAK_CLIENT_ID: crash-game-client
+      SEED_USERNAME: player
+      SEED_PASSWORD: player123
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      wallets:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # Frontend 
   # ---------------------------------------------------------------------------
   frontend:
     build:
