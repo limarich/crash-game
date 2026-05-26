@@ -177,6 +177,18 @@ export function CrashGraph() {
               <line x1={xEnd - 14} y1={yEnd + 14} x2={xEnd + 14} y2={yEnd - 14} stroke="#ff3355" strokeWidth="3" />
             </g>
           )}
+
+          <text
+            x={W - 16}
+            y={H - 28}
+            textAnchor="end"
+            fontFamily="monospace"
+            fontSize="11"
+            fill="rgba(255,255,255,0.15)"
+            style={{ userSelect: 'none', pointerEvents: 'none' }}
+          >
+            f(t) = 1.0024^(t/100)
+          </text>
         </svg>
 
         {/* State Badge */}
