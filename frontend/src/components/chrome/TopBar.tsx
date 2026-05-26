@@ -67,7 +67,7 @@ export function TopBar() {
               <TooltipTrigger asChild>
                 <Badge
                   variant="outline"
-                  className="font-mono text-[10px] tracking-[0.2em] uppercase text-text-dim border-border px-1.5 py-0.5 cursor-help"
+                  className="hidden sm:inline-flex font-mono text-[10px] tracking-[0.2em] uppercase text-text-dim border-border px-1.5 py-0.5 cursor-help"
                 >
                   provably fair
                 </Badge>
@@ -81,7 +81,7 @@ export function TopBar() {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.16em] uppercase text-text-mid">
+          <span className="hidden sm:flex items-center gap-1.5 font-mono text-[11px] tracking-[0.16em] uppercase text-text-mid">
             <span
               className="w-2 h-2 rounded-full bg-neon-green"
               style={{ boxShadow: '0 0 8px var(--neon-green)' }}
@@ -113,7 +113,7 @@ export function TopBar() {
                       {initial}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col text-left leading-tight">
+                  <div className="hidden sm:flex flex-col text-left leading-tight">
                     <span className="font-semibold text-text-hi text-[13px]">{displayName}</span>
                     {balance && (
                       <span className="font-mono text-[10px] tracking-[0.1em] text-neon-amber">{balance}</span>
