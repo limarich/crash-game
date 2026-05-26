@@ -228,6 +228,26 @@
     pointer-events: none;
   }
 
+  /* scanline sweep */
+  .crash-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 45%,
+      rgba(255, 255, 255, 0.025) 50%,
+      transparent 55%,
+      transparent 100%
+    );
+    background-size: 100% 200%;
+    animation: scanline 8s linear infinite;
+  }
+
+
   /* internal grid background */
   .crash-grid {
     background-image:
@@ -258,6 +278,11 @@
     mask-composite: exclude;
     pointer-events: none;
   }
+}
+
+@keyframes scanline {
+  0%   { background-position: 0 -100%; }
+  100% { background-position: 0 200%; }
 }
 
 @keyframes crash-flash {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Triangle } from 'lucide-react'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
@@ -19,6 +19,16 @@ export function TopBar() {
   const { token, username, logout } = useAuthStore()
   const [loginOpen, setLoginOpen] = useState(false)
   const { data: wallet } = useWalletQuery()
+  const [onlineCount, setOnlineCount] = useState(14728)
+
+  useEffect(() => {
+    const tick = () => {
+      setOnlineCount((n) => n + Math.floor(Math.random() * 7) - 3)
+      setTimeout(tick, 2500 + Math.random() * 3000)
+    }
+    const id = setTimeout(tick, 2500 + Math.random() * 3000)
+    return () => clearTimeout(id)
+  }, [])
 
   const isLoggedIn = !!token
   const displayName = username ?? 'guest'
@@ -75,7 +85,7 @@ export function TopBar() {
               className="w-2 h-2 rounded-full bg-neon-green"
               style={{ boxShadow: '0 0 8px var(--neon-green)' }}
             />
-            14.728 online
+            {onlineCount.toLocaleString('pt-BR')} online
           </span>
 
           {!isLoggedIn ? (
