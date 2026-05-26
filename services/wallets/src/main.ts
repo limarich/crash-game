@@ -34,8 +34,8 @@ async function bootstrap(): Promise<void> {
 
   const port = process.env.PORT || 4002;
   await app.listen(port, "0.0.0.0");
-  console.log(`Wallets service running on port ${port}`);
-  console.log(`Swagger UI: http://localhost:${port}/docs`);
+  // console.log(`Wallets service running on port ${port}`);
+  // console.log(`Swagger UI: http://localhost:${port}/docs`);
 }
 
 bootstrap();

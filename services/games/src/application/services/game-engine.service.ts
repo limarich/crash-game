@@ -29,27 +29,27 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
 
     async onApplicationBootstrap() {
         try {
-            console.log('[GameEngine] onApplicationBootstrap called')
+            // console.log('[GameEngine] onApplicationBootstrap called')
             await this.recoverOrStart()
         } catch (error) {
-            console.error('[GameEngine] Failed to start round:', error)
+            // console.error('[GameEngine] Failed to start round:', error)
         }
     }
 
     onApplicationShutdown() {
         try {
-            console.log('[GameEngine] onApplicationShutdown called')
+            // console.log('[GameEngine] onApplicationShutdown called')
             this.stopTick()
         } catch (error) {
-            console.error('[GameEngine] Failed to onApplicationShutdown:', error)
+            // console.error('[GameEngine] Failed to onApplicationShutdown:', error)
         }
     }
 
     private async recoverOrStart() {
         try {
-            console.log('[GameEngine] recoverOrStart called')
+            // console.log('[GameEngine] recoverOrStart called')
             const existing = await this.roundRepository.findCurrent()
-            console.log('[GameEngine] existing round:', existing?.id ?? 'none')
+            // console.log('[GameEngine] existing round:', existing?.id ?? 'none')
 
             if (existing) {
                 this.currentRound = existing;
@@ -72,7 +72,7 @@ export class GameEngineService implements OnApplicationBootstrap, OnApplicationS
             this.nonce = await this.roundRepository.findLastNonce()
             await this.startBettingPhase()
         } catch (error) {
-            console.error('[GameEngine] Failed to start round:', error)
+            // console.error('[GameEngine] Failed to start round:', error)
         }
     }
 
