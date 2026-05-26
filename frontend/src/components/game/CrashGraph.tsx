@@ -142,6 +142,15 @@ export function CrashGraph() {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <filter id="curveGlowPulse" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur result="blur">
+                <animate attributeName="stdDeviation" values="3;8;3" dur="1.8s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1; 0.4 0 0.6 1" />
+              </feGaussianBlur>
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
 
           <line x1="60" y1={H - 20} x2={W - 20} y2={H - 20} stroke="rgba(120,130,200,0.18)" strokeWidth="1" strokeDasharray="2 4" />
@@ -153,12 +162,12 @@ export function CrashGraph() {
           {phase !== 'betting' && (
             <>
               <path d={areaPath} fill={`url(#${fillId})`} />
-              <path d={path} fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" filter="url(#curveGlow)" />
+              <path d={path} fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" filter={phase === 'running' ? 'url(#curveGlowPulse)' : 'url(#curveGlow)'} />
             </>
           )}
 
           {phase === 'running' && (
-            <circle cx={xEnd} cy={yEnd} r="5" fill="#00ff88" filter="url(#curveGlow)" />
+            <circle cx={xEnd} cy={yEnd} r="5" fill="#00ff88" filter="url(#curveGlowPulse)" />
           )}
 
           {phase === 'crashed' && (
